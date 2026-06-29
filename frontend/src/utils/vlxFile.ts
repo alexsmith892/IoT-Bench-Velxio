@@ -30,7 +30,6 @@
  */
 
 import type { BoardInstance } from '../types/board';
-import type { Component } from '../types/component';
 import type { Wire } from '../types/wire';
 import { useEditorStore, chipFileGroupId } from '../store/useEditorStore';
 import { useSimulatorStore } from '../store/useSimulatorStore';
@@ -52,9 +51,18 @@ export interface VlxPayload {
     activeFileGroupId: string;
     languageMode?: string;
     serialBaudRate?: number;
+    boardOptions?: BoardInstance['boardOptions'];
+    spiffsFiles?: BoardInstance['spiffsFiles'];
+    libraries?: string[];
   }>;
   fileGroups: Record<string, Array<{ name: string; content: string }>>;
-  components: Component[];
+  components: Array<{
+    id: string;
+    metadataId: string;
+    x: number;
+    y: number;
+    properties: Record<string, unknown>;
+  }>;
   wires: Wire[];
   activeBoardId: string | null;
 }
@@ -69,6 +77,9 @@ function serialisableBoard(b: BoardInstance) {
     activeFileGroupId: b.activeFileGroupId,
     languageMode: b.languageMode,
     serialBaudRate: b.serialBaudRate,
+    boardOptions: b.boardOptions,
+    spiffsFiles: b.spiffsFiles,
+    libraries: b.libraries,
   };
 }
 
@@ -166,7 +177,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
  * on mismatch with a human-readable reason. Keep the checks defensive —
  * users may edit .vlx files by hand or feed us a wrong file by accident.
  */
-function validatePayload(data: unknown): VlxPayload {
+export function validateVlxPayload(data: unknown): VlxPayload {
   if (!isPlainObject(data)) {
     throw new VlxParseError('File is not a JSON object.');
   }
@@ -188,14 +199,73 @@ function validatePayload(data: unknown): VlxPayload {
   if (!Array.isArray(data.boards)) {
     throw new VlxParseError('Missing or invalid "boards" array.');
   }
+  for (const board of data.boards) {
+    if (
+      !isPlainObject(board) ||
+      typeof board.id !== 'string' ||
+      typeof board.boardKind !== 'string' ||
+      typeof board.x !== 'number' ||
+      typeof board.y !== 'number' ||
+      typeof board.activeFileGroupId !== 'string' ||
+      (board.libraries !== undefined &&
+        (!Array.isArray(board.libraries) ||
+          board.libraries.some((library) => typeof library !== 'string')))
+    ) {
+      throw new VlxParseError('Invalid board entry.');
+    }
+  }
   if (!isPlainObject(data.fileGroups)) {
     throw new VlxParseError('Missing or invalid "fileGroups" object.');
+  }
+  for (const [groupId, files] of Object.entries(data.fileGroups)) {
+    if (
+      !groupId ||
+      !Array.isArray(files) ||
+      files.some(
+        (file) =>
+          !isPlainObject(file) || typeof file.name !== 'string' || typeof file.content !== 'string',
+      )
+    ) {
+      throw new VlxParseError(`Invalid file group ${JSON.stringify(groupId)}.`);
+    }
   }
   if (!Array.isArray(data.components)) {
     throw new VlxParseError('Missing or invalid "components" array.');
   }
+  for (const component of data.components) {
+    if (
+      !isPlainObject(component) ||
+      typeof component.id !== 'string' ||
+      typeof component.metadataId !== 'string' ||
+      typeof component.x !== 'number' ||
+      typeof component.y !== 'number' ||
+      !isPlainObject(component.properties)
+    ) {
+      throw new VlxParseError('Invalid component entry.');
+    }
+  }
   if (!Array.isArray(data.wires)) {
     throw new VlxParseError('Missing or invalid "wires" array.');
+  }
+  for (const wire of data.wires) {
+    const start = isPlainObject(wire) ? wire.start : null;
+    const end = isPlainObject(wire) ? wire.end : null;
+    if (
+      !isPlainObject(wire) ||
+      typeof wire.id !== 'string' ||
+      !isPlainObject(start) ||
+      typeof start.componentId !== 'string' ||
+      typeof start.pinName !== 'string' ||
+      !isPlainObject(end) ||
+      typeof end.componentId !== 'string' ||
+      typeof end.pinName !== 'string' ||
+      typeof wire.color !== 'string'
+    ) {
+      throw new VlxParseError('Invalid wire entry.');
+    }
+  }
+  if (data.activeBoardId !== null && typeof data.activeBoardId !== 'string') {
+    throw new VlxParseError('Invalid "activeBoardId" field.');
   }
   return data as unknown as VlxPayload;
 }
@@ -218,7 +288,20 @@ export async function parseVlxFile(file: File): Promise<VlxPayload> {
   } catch (err) {
     throw new VlxParseError(`Invalid JSON: ${(err as Error).message}`);
   }
-  return validatePayload(parsed);
+  return validateVlxPayload(parsed);
+}
+
+/** Validate and load an already-parsed project payload into the live stores. */
+export function loadVlxPayload(data: unknown): VlxPayload {
+  const payload = validateVlxPayload(data);
+  useSimulatorStore.getState().loadProjectState({
+    boards: payload.boards as unknown as BoardInstance[],
+    fileGroups: payload.fileGroups,
+    components: payload.components,
+    wires: payload.wires,
+    activeBoardId: payload.activeBoardId,
+  });
+  return payload;
 }
 
 /**
@@ -228,12 +311,5 @@ export async function parseVlxFile(file: File): Promise<VlxPayload> {
  */
 export async function importVlxFile(file: File): Promise<VlxPayload> {
   const payload = await parseVlxFile(file);
-  useSimulatorStore.getState().loadProjectState({
-    boards: payload.boards as unknown as BoardInstance[],
-    fileGroups: payload.fileGroups,
-    components: payload.components,
-    wires: payload.wires,
-    activeBoardId: payload.activeBoardId,
-  });
-  return payload;
+  return loadVlxPayload(payload);
 }

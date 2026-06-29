@@ -30,7 +30,6 @@ import { useCompileLogsStore } from '../store/useCompileLogsStore';
 import { useOscilloscopeStore } from '../store/useOscilloscopeStore';
 import { useProjectStore } from '../store/useProjectStore';
 import { useAutoSaveProject } from '../hooks/useAutoSaveProject';
-import type { CompilationLog } from '../utils/compilationLogger';
 import { isPiBoardKind } from '../types/board';
 import '../App.css';
 
@@ -53,7 +52,12 @@ const resizeHandleStyle: React.CSSProperties = {
   borderBottom: '1px solid #3c3c3c',
 };
 
-export const EditorPage: React.FC = () => {
+interface EditorPageProps {
+  mode?: 'standard' | 'inspection';
+}
+
+export const EditorPage: React.FC<EditorPageProps> = ({ mode = 'standard' }) => {
+  const isInspection = mode === 'inspection';
   const { t } = useTranslation();
   useSEO({
     title: 'Multi-Board Simulator Editor — Arduino, ESP32, RP2040, RISC-V | Velxio',
@@ -64,7 +68,7 @@ export const EditorPage: React.FC = () => {
 
   // Silent auto-save for the loaded project (only fires when authed AND
   // currentProject has a UUID — see useAutoSaveProject for the gating rules).
-  const autoSave = useAutoSaveProject();
+  const autoSave = useAutoSaveProject(!isInspection);
 
   const [editorWidthPct, setEditorWidthPct] = useState(45);
   // Desktop-only 3-way layout switch (code-only / circuit-only / both).
@@ -110,6 +114,7 @@ export const EditorPage: React.FC = () => {
   // follow-up (round 2) with a stronger message; clicking the repo link at
   // any time opts them out permanently.
   useEffect(() => {
+    if (isInspection) return;
     const STAR_KEY = 'velxio_star_prompted';
     const STAR_KEY_V2 = 'velxio_star_prompted_v2';
     const STAR_CLICKED_KEY = 'velxio_star_clicked';
@@ -150,7 +155,7 @@ export const EditorPage: React.FC = () => {
       }
     }, delay);
     return () => clearTimeout(timer);
-  }, []);
+  }, [isInspection]);
 
   const handleDismissStarBanner = () => {
     // First dismiss → mark round 1; second dismiss → mark round 2 (stop forever).
@@ -352,7 +357,7 @@ export const EditorPage: React.FC = () => {
 
   return (
     <div className="app">
-      <AppHeader autoSave={autoSave} />
+      {!isInspection && <AppHeader autoSave={autoSave} />}
 
       {/* ── Mobile tab bar (top, above panels) ── */}
       {isMobile && (
@@ -491,7 +496,7 @@ export const EditorPage: React.FC = () => {
               setConsoleOpen={setConsoleOpen}
               compileLogs={compileLogs}
               setCompileLogs={setCompileLogs}
-              centerSlot={!isLinuxPi ? <FileTabs /> : null}
+              centerSlot={!isLinuxPi ? <FileTabs hideWhenSingle={isInspection} /> : null}
             />
           </div>
           <div className="unified-toolbar-canvas" ref={setCanvasHeaderSlot} />
@@ -506,10 +511,10 @@ export const EditorPage: React.FC = () => {
             width: isMobile
               ? '100%'
               : viewMode === 'code'
-              ? '100%'
-              : viewMode === 'circuit'
-              ? '0%'
-              : `${editorWidthPct}%`,
+                ? '100%'
+                : viewMode === 'circuit'
+                  ? '0%'
+                  : `${editorWidthPct}%`,
             display:
               (isMobile && mobileView !== 'code') || (!isMobile && viewMode === 'circuit')
                 ? 'none'
@@ -572,7 +577,7 @@ export const EditorPage: React.FC = () => {
                     setConsoleOpen={setConsoleOpen}
                     compileLogs={compileLogs}
                     setCompileLogs={setCompileLogs}
-                    centerSlot={!isLinuxPi ? <FileTabs /> : null}
+                    centerSlot={!isLinuxPi ? <FileTabs hideWhenSingle={isInspection} /> : null}
                   />
                 </div>
               </div>
@@ -630,10 +635,10 @@ export const EditorPage: React.FC = () => {
             width: isMobile
               ? '100%'
               : viewMode === 'circuit'
-              ? '100%'
-              : viewMode === 'code'
-              ? '0%'
-              : `${100 - editorWidthPct}%`,
+                ? '100%'
+                : viewMode === 'code'
+                  ? '0%'
+                  : `${100 - editorWidthPct}%`,
             display:
               (isMobile && mobileView !== 'circuit') || (!isMobile && viewMode === 'code')
                 ? 'none'
@@ -671,7 +676,7 @@ export const EditorPage: React.FC = () => {
         </div>
       </div>
 
-      {showStarBanner && (
+      {!isInspection && showStarBanner && (
         <GitHubStarBanner
           onClose={handleDismissStarBanner}
           onStarClick={handleStarClick}
@@ -680,7 +685,7 @@ export const EditorPage: React.FC = () => {
       )}
       {/* Slot reserved for the private pro overlay (e.g. agent chat panel).
           Self-hosted builds without an overlay see nothing here. */}
-      <div data-velxio-slot="agent-chat" />
+      {!isInspection && <div data-velxio-slot="agent-chat" />}
     </div>
   );
 };

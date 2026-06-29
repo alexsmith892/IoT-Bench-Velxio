@@ -30,6 +30,7 @@ import { Velxio25Page } from './pages/Velxio25Page';
 import { Velxio3Page } from './pages/Velxio3Page';
 import { AboutPage } from './pages/AboutPage';
 import { PricingPlaceholder } from './pages/PricingPlaceholder';
+import { InspectionScenarioPage } from './pages/InspectionScenarioPage';
 import { LocaleSync } from './i18n/LocaleSync';
 import { NON_DEFAULT_LOCALES } from './i18n/config';
 import { useProRoutes } from './lib/proRoutes';
@@ -47,7 +48,12 @@ import './App.css';
 // In Tauri desktop builds the marketing landing page is a disorienting
 // first screen — users opened the desktop app to land in the editor.
 // `/` redirects there. Web builds still see the LandingPage.
-const ROOT_ELEMENT: ReactElement = import.meta.env.VITE_DESKTOP ? (
+const BENCH_MODE = import.meta.env.VITE_BENCH_MODE === 'true';
+const BENCH_DEFAULT_SCENARIO = import.meta.env.VITE_BENCH_DEFAULT_SCENARIO || 'uno-led-blink';
+
+const ROOT_ELEMENT: ReactElement = BENCH_MODE ? (
+  <Navigate to={`/bench/${BENCH_DEFAULT_SCENARIO}`} replace />
+) : import.meta.env.VITE_DESKTOP ? (
   <Navigate to="/editor" replace />
 ) : (
   <LandingPage />
@@ -56,6 +62,7 @@ const ROOT_ELEMENT: ReactElement = import.meta.env.VITE_DESKTOP ? (
 const ROUTES: { path: string; element: ReactElement; index?: boolean }[] = [
   { path: '/', element: ROOT_ELEMENT, index: true },
   { path: 'editor', element: <EditorPage /> },
+  ...(BENCH_MODE ? [{ path: 'bench/:scenarioId', element: <InspectionScenarioPage /> }] : []),
   { path: 'examples', element: <ExamplesPage /> },
   // /examples/<id> = SEO landing (preview, badges, "Open in Simulator" CTA).
   // /example/<id>  = live editor with the example pre-loaded; the URL
@@ -120,7 +127,7 @@ function App() {
               <Route key="root" path="/" element={r.element} />
             ) : (
               <Route key={r.path} path={`/${r.path}`} element={r.element} />
-            )
+            ),
           )}
 
           {/*
@@ -135,12 +142,8 @@ function App() {
                 r.index ? (
                   <Route key={`${locale}-root`} index element={r.element} />
                 ) : (
-                  <Route
-                    key={`${locale}-${r.path}`}
-                    path={r.path}
-                    element={r.element}
-                  />
-                )
+                  <Route key={`${locale}-${r.path}`} path={r.path} element={r.element} />
+                ),
               )}
             </Route>
           ))}

@@ -3,9 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { useEditorStore, CHIP_GROUP_PREFIX } from '../../store/useEditorStore';
 import { useSimulatorStore } from '../../store/useSimulatorStore';
 import { boardDisplayName } from '../../types/board';
+import { shouldHideFileTabs } from './fileTabsVisibility';
 import './FileTabs.css';
 
-export const FileTabs: React.FC = () => {
+interface FileTabsProps {
+  hideWhenSingle?: boolean;
+}
+
+export const FileTabs: React.FC<FileTabsProps> = ({ hideWhenSingle = false }) => {
   const { t } = useTranslation();
   const { files, openFileIds, activeFileId, activeGroupId, setActiveFile, closeFile } =
     useEditorStore();
@@ -46,6 +51,8 @@ export const FileTabs: React.FC = () => {
     if (confirmCloseId) closeFile(confirmCloseId);
     setConfirmCloseId(null);
   };
+
+  if (shouldHideFileTabs(hideWhenSingle, openFiles.length)) return null;
 
   return (
     <>

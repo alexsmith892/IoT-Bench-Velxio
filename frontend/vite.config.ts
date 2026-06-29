@@ -1,6 +1,6 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import path from 'path'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
 
 // https://vite.dev/config/
 // avr8js / rp2040js / @wokwi/elements are resolved from npm via package.json.
@@ -13,12 +13,18 @@ import path from 'path'
 const proOverlayPath =
   process.env.VITE_PRO_BUILD && process.env.PRO_OVERLAY_PATH
     ? path.resolve(process.env.PRO_OVERLAY_PATH)
-    : path.resolve(__dirname, 'src/__pro_stub__')
+    : path.resolve(__dirname, 'src/__pro_stub__');
 
-export default defineConfig(({ command }) => ({
+const inspectionScenariosPath =
+  process.env.VITE_BENCH_MODE === 'true'
+    ? path.resolve(__dirname, '../bench/inspection-scenarios/registry.ts')
+    : path.resolve(__dirname, 'src/__bench_stub__/inspectionScenarios.ts');
+
+export default defineConfig(({ command: _command }) => ({
   plugins: [react()],
   resolve: {
     alias: {
+      'virtual:inspection-scenarios': inspectionScenariosPath,
       '@pro': proOverlayPath,
       // Stable alias for OSS modules that the pro overlay needs to import
       // (e.g. lib/proRoutes for route registration). Using an alias instead
@@ -44,6 +50,7 @@ export default defineConfig(({ command }) => ({
     preserveSymlinks: !!process.env.VITE_PRO_BUILD,
   },
   server: {
+    fs: { allow: ['..'] },
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:8001',
@@ -85,4 +92,4 @@ export default defineConfig(({ command }) => ({
   },
   // Vitest config lives in `vitest.config.ts` (split out so CI can
   // reference it directly and so vite build doesn't pay test deps).
-}))
+}));

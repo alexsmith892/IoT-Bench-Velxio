@@ -135,6 +135,11 @@ RUN mkdir -p /root/.espressif/tools/mkspiffs/0.2.3/mkspiffs \
 # ---- Stage 1: Build frontend and third-party ----
 FROM node:20 AS frontend-builder
 
+ARG VITE_BENCH_MODE=false
+ARG VITE_BENCH_DEFAULT_SCENARIO=uno-led-blink
+ENV VITE_BENCH_MODE=${VITE_BENCH_MODE}
+ENV VITE_BENCH_DEFAULT_SCENARIO=${VITE_BENCH_DEFAULT_SCENARIO}
+
 WORKDIR /app
 
 # avr8js, rp2040js and @wokwi/elements are pulled directly from the npm
@@ -143,6 +148,7 @@ WORKDIR /app
 # frontend/public/component-svgs/, and components-metadata.json is committed.
 COPY frontend/ frontend/
 COPY scripts/ scripts/
+COPY bench/inspection-scenarios/ bench/inspection-scenarios/
 WORKDIR /app/frontend
 # Lock files aren't committed in this repo (they're gitignored) — see the
 # note in .gitignore. The `rm -f` below is defense-in-depth in case

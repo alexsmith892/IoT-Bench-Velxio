@@ -33,9 +33,15 @@ const proOverlayPath =
     ? path.resolve(process.env.PRO_OVERLAY_PATH)
     : path.resolve(__dirname, 'src/__pro_stub__');
 
+const inspectionScenariosPath =
+  process.env.VITE_BENCH_MODE === 'true'
+    ? path.resolve(__dirname, '../bench/inspection-scenarios/registry.ts')
+    : path.resolve(__dirname, 'src/__bench_stub__/inspectionScenarios.ts');
+
 export default defineConfig({
   resolve: {
     alias: {
+      'virtual:inspection-scenarios': inspectionScenariosPath,
       '@velxio': path.resolve(__dirname, 'src'),
       '@pro': proOverlayPath,
     },
@@ -75,15 +81,8 @@ export default defineConfig({
     },
     coverage: {
       provider: 'v8',
-      include: [
-        'src/simulation/**/*.ts',
-        'src/utils/exampleTo*.ts',
-      ],
-      exclude: [
-        '**/*.test.ts',
-        '**/__tests__/**',
-        'src/simulation/spice/wasm/**',
-      ],
+      include: ['src/simulation/**/*.ts', 'src/utils/exampleTo*.ts'],
+      exclude: ['**/*.test.ts', '**/__tests__/**', 'src/simulation/spice/wasm/**'],
       reporter: ['text', 'lcov', 'html'],
     },
   },

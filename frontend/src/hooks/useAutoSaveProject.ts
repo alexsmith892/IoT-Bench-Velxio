@@ -34,15 +34,14 @@ export function installAutoSaveImpl(impl: AutoSaveImpl | null): void {
   installedImpl = impl;
 }
 
-export function useAutoSaveProject(): AutoSaveState {
+export function useAutoSaveProject(enabled = true): AutoSaveState {
   const [state, setState] = useState<AutoSaveState>(IDLE);
 
   useEffect(() => {
-    if (!installedImpl) return;
+    if (!enabled || !installedImpl) return;
     return installedImpl(setState);
-    // Mount-only — impl is installed at module load, swapping at runtime is unsupported.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    // The implementation is installed at module load; only enablement changes.
+  }, [enabled]);
 
   return state;
 }

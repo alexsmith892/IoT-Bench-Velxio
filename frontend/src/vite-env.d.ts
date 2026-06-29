@@ -1,5 +1,18 @@
 /// <reference types="vite/client" />
 
+interface ImportMetaEnv {
+  readonly VITE_BENCH_MODE?: string;
+  readonly VITE_BENCH_DEFAULT_SCENARIO?: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+
+declare module 'virtual:inspection-scenarios' {
+  export const inspectionScenarios: unknown[];
+}
+
 // Web Components JSX declarations
 declare namespace JSX {
   interface IntrinsicElements {

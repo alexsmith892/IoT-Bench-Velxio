@@ -190,3 +190,5 @@ MANIFEST.sha256
 *.sqlite-backup
 
 backend/.venv/*
+# Personal, untracked benchmark design notes (Claude/Codex review workspace)
+benchmark-notes/
