@@ -1,0 +1,20 @@
+{
+  "name": "iot-bench",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "IoT-Bench — headless grading harness for LLM-authored firmware on Velxio (AVR PoC).",
+  "scripts": {
+    "task": "tsx runner/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "gate": "vitest run __tests__/*.task.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "avr8js": "0.21.0",
+    "tsx": "^4.19.2",
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.18"
+  }
+}
