@@ -21,6 +21,8 @@ import { CompilationConsole } from '../components/editor/CompilationConsole';
 import { SimulatorCanvas } from '../components/simulator/SimulatorCanvas';
 import { SerialMonitor } from '../components/simulator/SerialMonitor';
 import { Oscilloscope } from '../components/simulator/Oscilloscope';
+import { TaskMonitor } from '../components/simulator/TaskMonitor';
+import type { InspectionDockPanel } from '../components/simulator/SimulatorCanvas';
 import { AppHeader } from '../components/layout/AppHeader';
 import { triggerSaveAction } from '../lib/proSaveAction';
 import { GitHubStarBanner } from '../components/layout/GitHubStarBanner';
@@ -29,8 +31,10 @@ import { useEditorStore } from '../store/useEditorStore';
 import { useCompileLogsStore } from '../store/useCompileLogsStore';
 import { useOscilloscopeStore } from '../store/useOscilloscopeStore';
 import { useProjectStore } from '../store/useProjectStore';
+import { useTaskMonitorStore } from '../store/useTaskMonitorStore';
 import { useAutoSaveProject } from '../hooks/useAutoSaveProject';
 import { isPiBoardKind } from '../types/board';
+import type { TaskMonitorDefinition } from '../lib/inspectionScenarios';
 import '../App.css';
 
 const MOBILE_BREAKPOINT = 768;
@@ -54,9 +58,10 @@ const resizeHandleStyle: React.CSSProperties = {
 
 interface EditorPageProps {
   mode?: 'standard' | 'inspection';
+  taskMonitor?: TaskMonitorDefinition;
 }
 
-export const EditorPage: React.FC<EditorPageProps> = ({ mode = 'standard' }) => {
+export const EditorPage: React.FC<EditorPageProps> = ({ mode = 'standard', taskMonitor }) => {
   const isInspection = mode === 'inspection';
   const { t } = useTranslation();
   useSEO({
@@ -93,6 +98,10 @@ export const EditorPage: React.FC<EditorPageProps> = ({ mode = 'standard' }) => 
   const compileLogs = useCompileLogsStore((s) => s.logs);
   const setCompileLogs = useCompileLogsStore((s) => s.setLogs);
   const [bottomPanelHeight, setBottomPanelHeight] = useState(BOTTOM_PANEL_DEFAULT);
+  const [inspectionPanel, setInspectionPanel] = useState<InspectionDockPanel>(
+    taskMonitor ? 'task' : null,
+  );
+  const configureTaskMonitor = useTaskMonitorStore((state) => state.configure);
   const [showStarBanner, setShowStarBanner] = useState(false);
   const [starRound, setStarRound] = useState<1 | 2>(1);
 
@@ -103,6 +112,17 @@ export const EditorPage: React.FC<EditorPageProps> = ({ mode = 'standard' }) => 
   // WASM ngspice (via NgSpiceWorkerAdapter) is the only solver.
   useEffect(() => {
     return startSimulation();
+  }, []);
+
+  useEffect(() => {
+    if (!isInspection) return;
+    configureTaskMonitor(taskMonitor ?? null);
+    if (taskMonitor) setInspectionPanel('task');
+    return () => configureTaskMonitor(null);
+  }, [configureTaskMonitor, isInspection, taskMonitor]);
+
+  const toggleInspectionPanel = useCallback((panel: Exclude<InspectionDockPanel, null>) => {
+    setInspectionPanel((current) => (current === panel ? null : panel));
   }, []);
 
   // ── GitHub star prompt (show twice at most: 2nd visit OR after 3 min) ──────
@@ -647,21 +667,47 @@ export const EditorPage: React.FC<EditorPageProps> = ({ mode = 'standard' }) => 
           }}
         >
           <div style={{ flex: 1, overflow: 'hidden', position: 'relative', minHeight: 0 }}>
-            <SimulatorCanvas headerSlot={!isMobile ? canvasHeaderSlot : null} />
+            <SimulatorCanvas
+              headerSlot={!isMobile ? canvasHeaderSlot : null}
+              inspectionDock={
+                isInspection
+                  ? {
+                      taskAvailable: Boolean(taskMonitor),
+                      activePanel: inspectionPanel,
+                      togglePanel: toggleInspectionPanel,
+                    }
+                  : undefined
+              }
+            />
           </div>
-          {serialMonitorOpen && (
-            <>
-              <div
-                onMouseDown={handleBottomPanelResizeMouseDown}
-                style={resizeHandleStyle}
-                title={t('editor.shell.dragResize')}
-              />
-              <div style={{ height: bottomPanelHeight, flexShrink: 0 }}>
-                <SerialMonitor />
-              </div>
-            </>
-          )}
-          {oscilloscopeOpen && (
+          {isInspection && taskMonitor
+            ? inspectionPanel && (
+                <>
+                  <div
+                    onMouseDown={handleBottomPanelResizeMouseDown}
+                    style={resizeHandleStyle}
+                    title={t('editor.shell.dragResize')}
+                  />
+                  <div style={{ height: bottomPanelHeight, flexShrink: 0 }}>
+                    {inspectionPanel === 'task' && <TaskMonitor definition={taskMonitor} />}
+                    {inspectionPanel === 'serial' && <SerialMonitor />}
+                    {inspectionPanel === 'scope' && <Oscilloscope />}
+                  </div>
+                </>
+              )
+            : serialMonitorOpen && (
+                <>
+                  <div
+                    onMouseDown={handleBottomPanelResizeMouseDown}
+                    style={resizeHandleStyle}
+                    title={t('editor.shell.dragResize')}
+                  />
+                  <div style={{ height: bottomPanelHeight, flexShrink: 0 }}>
+                    <SerialMonitor />
+                  </div>
+                </>
+              )}
+          {(!isInspection || !taskMonitor) && oscilloscopeOpen && (
             <>
               <div
                 onMouseDown={handleBottomPanelResizeMouseDown}

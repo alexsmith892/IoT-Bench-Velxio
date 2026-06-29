@@ -20,10 +20,21 @@ describe('benchmark inspection scenarios', () => {
   it('validates the tracked registry and rejects duplicate ids', () => {
     const scenarios = validateInspectionScenarios(fixtureScenarios);
     expect(scenarios.map((scenario) => scenario.id)).toEqual(['uno-led-blink']);
+    expect(scenarios[0]?.taskMonitor).toMatchObject({
+      kind: 'led-blink',
+      source: { boardId: 'arduino-uno', componentId: 'bench_led', pin: 13 },
+      target: { frequencyHz: 1, dutyCycle: 0.5, tolerancePct: 5, minPeriods: 2 },
+    });
     expect(findInspectionScenario(scenarios, 'missing')).toBeNull();
     expect(() => validateInspectionScenarios([fixtureScenarios[0], fixtureScenarios[0]])).toThrow(
       /Duplicate/,
     );
+  });
+
+  it('rejects monitor metadata that points outside the scenario', () => {
+    const scenario = structuredClone(fixtureScenarios[0]);
+    scenario.taskMonitor.source.boardId = 'missing-board';
+    expect(() => validateInspectionScenarios([scenario])).toThrow(/board was not found/);
   });
 
   it('loads the Uno smoke fixture into simulator and editor stores', () => {

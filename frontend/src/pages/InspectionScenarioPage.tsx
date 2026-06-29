@@ -79,5 +79,5 @@ export const InspectionScenarioPage: React.FC = () => {
     return <Shell>Loading {scenario.title}…</Shell>;
   }
 
-  return <EditorPage mode="inspection" />;
+  return <EditorPage mode="inspection" taskMonitor={scenario.taskMonitor} />;
 };

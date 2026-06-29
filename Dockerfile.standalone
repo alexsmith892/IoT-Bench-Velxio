@@ -147,8 +147,11 @@ WORKDIR /app
 # Board SVGs live in frontend/public/boards/, component SVGs in
 # frontend/public/component-svgs/, and components-metadata.json is committed.
 COPY frontend/ frontend/
+COPY shared/ shared/
 COPY scripts/ scripts/
 COPY bench/inspection-scenarios/ bench/inspection-scenarios/
+COPY bench/scenarios/ bench/scenarios/
+COPY bench/contracts/ bench/contracts/
 WORKDIR /app/frontend
 # Lock files aren't committed in this repo (they're gitignored) — see the
 # note in .gitignore. The `rm -f` below is defense-in-depth in case

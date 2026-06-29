@@ -192,3 +192,6 @@ MANIFEST.sha256
 backend/.venv/*
 # Personal, untracked benchmark design notes (Claude/Codex review workspace)
 benchmark-notes/
+
+# IoT-Bench generated run artifacts (trace JSON dumps)
+bench/artifacts/
