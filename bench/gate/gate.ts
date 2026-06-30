@@ -59,6 +59,15 @@ export interface GateOptions {
   artifactDir?: string;
   /** Skip writing the artifact (tests). */
   noArtifact?: boolean;
+  /**
+   * Minimum hidden variants a task must carry to be admitted (benchmark-design.md
+   * §7: "≥3 hidden variants"). Default 3. Lower it only during iteration. The
+   * *differing-stimulus* quality is an authoring concern (Pass 6) — this is the
+   * structural count check.
+   */
+  minVariants?: number;
+  /** Minimum adversarial wrongs (benchmark-design.md §7: "≥2"). Default 2. */
+  minWrongs?: number;
 }
 
 // ── deterministic shuffle (seeded) ────────────────────────────────────────────
@@ -107,8 +116,26 @@ const categoriesPresent = (variants: VariantRunResult[]): Set<string> =>
 export async function gate(task: OneShotScenario, opts: GateOptions = {}): Promise<GateReport> {
   const runs = opts.runs ?? 3;
   const seed = opts.seed ?? 0xc0ffee;
+  const minVariants = opts.minVariants ?? 3;
+  const minWrongs = opts.minWrongs ?? 2;
   const reasons: string[] = [];
   const variants = effectiveVariants(task);
+
+  // 0. Structural minimums (benchmark-design.md §7). Checked on the AUTHORED
+  //    variants, not the implicit base — a task with no variants has 0, not 1.
+  const authoredVariants = task.variants?.length ?? 0;
+  if (authoredVariants < minVariants) {
+    reasons.push(
+      `only ${authoredVariants} hidden variant(s) — §7 requires ≥${minVariants} (differing stimulus).`,
+    );
+  }
+  if (task.adversarialWrongs.length < minWrongs) {
+    reasons.push(
+      `only ${task.adversarialWrongs.length} adversarial wrong(s) — §7 requires ≥${minWrongs}.`,
+    );
+  }
+  const structuralOk =
+    authoredVariants >= minVariants && task.adversarialWrongs.length >= minWrongs;
 
   // 1. Compile + grade the reference across `runs` fresh instances, randomizing
   //    variant order each run to catch state leakage.
@@ -161,14 +188,11 @@ export async function gate(task: OneShotScenario, opts: GateOptions = {}): Promi
 
   const wrongsOk =
     task.adversarialWrongs.length > 0 && wrongs.every((w) => w.failedOnIntendedCategory);
-  if (task.adversarialWrongs.length === 0) {
-    reasons.push('no adversarial wrongs authored — cannot gate (§5.2 requires ≥1).');
-  }
   for (const w of wrongs.filter((w) => !w.failedOnIntendedCategory)) {
     reasons.push(`wrong "${w.id}": ${w.reason}`);
   }
 
-  const pass = referencePassedAll && deterministic && wrongsOk;
+  const pass = structuralOk && referencePassedAll && deterministic && wrongsOk;
 
   const report: GateReport = {
     taskId: task.id,

@@ -55,6 +55,14 @@ describe('capability gate (live backend)', () => {
     expect(r.reasons.join(' ')).toMatch(/ledBlinks|frequency/i);
   }, 120_000);
 
+  it('goes RED when a task carries fewer than 3 hidden variants (§7)', async (c) => {
+    if (!up) return c.skip();
+    const tooFew: OneShotScenario = { ...baseTask, variants: baseTask.variants.slice(0, 2) };
+    const r = await gate(tooFew, opts);
+    expect(r.pass).toBe(false);
+    expect(r.reasons.join(' ')).toMatch(/hidden variant|§7/);
+  }, 120_000);
+
   it('does NOT credit a wrong that fails on the wrong (incidental) category', async (c) => {
     if (!up) return c.skip();
     // Declare the stuck-on wrong should fail on "duty" — but it actually fails on
