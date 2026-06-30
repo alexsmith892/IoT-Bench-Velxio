@@ -35,13 +35,16 @@ import { useTaskMonitorStore } from '../store/useTaskMonitorStore';
 import { useAutoSaveProject } from '../hooks/useAutoSaveProject';
 import { isPiBoardKind } from '../types/board';
 import type { TaskMonitorDefinition } from '../lib/inspectionScenarios';
+import {
+  BOTTOM_PANEL_DEFAULT,
+  BOTTOM_PANEL_MAX,
+  BOTTOM_PANEL_RESIZE_HANDLE_HEIGHT,
+  clampBottomPanelHeight,
+  taskMonitorMaximumHeight,
+} from './bottomPanelSizing';
 import '../App.css';
 
 const MOBILE_BREAKPOINT = 768;
-
-const BOTTOM_PANEL_MIN = 80;
-const BOTTOM_PANEL_MAX = 600;
-const BOTTOM_PANEL_DEFAULT = 200;
 
 const EXPLORER_MIN = 110;
 const EXPLORER_MAX = 500;
@@ -81,6 +84,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({ mode = 'standard', taskM
   const viewMode = useEditorStore((s) => s.viewMode);
   const setViewMode = useEditorStore((s) => s.setViewMode);
   const containerRef = useRef<HTMLDivElement>(null);
+  const simulatorPanelRef = useRef<HTMLDivElement>(null);
   const resizingRef = useRef(false);
   const serialMonitorOpen = useSimulatorStore((s) => s.serialMonitorOpen);
   const activeBoardId = useSimulatorStore((s) => s.activeBoardId);
@@ -333,9 +337,11 @@ export const EditorPage: React.FC<EditorPageProps> = ({ mode = 'standard', taskM
 
       const onMove = (ev: MouseEvent) => {
         const delta = startY - ev.clientY;
-        setBottomPanelHeight(
-          Math.max(BOTTOM_PANEL_MIN, Math.min(BOTTOM_PANEL_MAX, startHeight + delta)),
-        );
+        const maximumHeight =
+          isInspection && inspectionPanel === 'task' && simulatorPanelRef.current
+            ? taskMonitorMaximumHeight(simulatorPanelRef.current.clientHeight)
+            : BOTTOM_PANEL_MAX;
+        setBottomPanelHeight(clampBottomPanelHeight(startHeight + delta, maximumHeight));
       };
       const onUp = () => {
         document.body.style.cursor = '';
@@ -348,7 +354,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({ mode = 'standard', taskM
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
     },
-    [bottomPanelHeight],
+    [bottomPanelHeight, inspectionPanel, isInspection],
   );
 
   const handleExplorerResizeMouseDown = useCallback(
@@ -650,6 +656,7 @@ export const EditorPage: React.FC<EditorPageProps> = ({ mode = 'standard', taskM
 
         {/* ── Simulator side ── */}
         <div
+          ref={simulatorPanelRef}
           className="simulator-panel"
           style={{
             width: isMobile
@@ -688,7 +695,16 @@ export const EditorPage: React.FC<EditorPageProps> = ({ mode = 'standard', taskM
                     style={resizeHandleStyle}
                     title={t('editor.shell.dragResize')}
                   />
-                  <div style={{ height: bottomPanelHeight, flexShrink: 0 }}>
+                  <div
+                    style={{
+                      height: bottomPanelHeight,
+                      maxHeight:
+                        inspectionPanel === 'task'
+                          ? `calc(100% - ${BOTTOM_PANEL_RESIZE_HANDLE_HEIGHT}px)`
+                          : undefined,
+                      flexShrink: 0,
+                    }}
+                  >
                     {inspectionPanel === 'task' && <TaskMonitor definition={taskMonitor} />}
                     {inspectionPanel === 'serial' && <SerialMonitor />}
                     {inspectionPanel === 'scope' && <Oscilloscope />}

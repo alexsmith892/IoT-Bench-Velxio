@@ -344,6 +344,13 @@ export class AVRSimulator {
    * Used by the oscilloscope / logic analyzer.
    */
   public onPinChangeWithTime: ((pin: number, state: boolean, timeMs: number) => void) | null = null;
+  /**
+   * Last externally-driven INPUT level per Arduino pin (buttons, switches, …),
+   * so a digital-edge is published only on an actual change. This makes the live
+   * monitor reflect input transitions; the headless grader uses its own harness,
+   * never this path.
+   */
+  private externalPinLevels = new Map<number, boolean>();
   private lastPortBValue = 0;
   private lastPortCValue = 0;
   private lastPortDValue = 0;
@@ -397,6 +404,10 @@ export class AVRSimulator {
    */
   loadHex(hexContent: string): void {
     console.log('Loading HEX file...');
+
+    // Fresh run → forget external input levels so the next part re-seed (e.g. a
+    // button's idle-HIGH) re-publishes its baseline edge into the monitor.
+    this.externalPinLevels.clear();
 
     const bytes = hexToUint8Array(hexContent);
 
@@ -1009,9 +1020,26 @@ export class AVRSimulator {
   }
 
   /**
-   * Set the state of an Arduino pin externally (e.g. from a UI button)
+   * Set the state of an Arduino pin externally (e.g. from a UI button). Also
+   * publishes a digital-edge (via `onPinChangeWithTime`) on an actual change so
+   * the live monitor reflects input transitions — buttons/switches drive an
+   * INPUT pin, which the MCU never writes, so `firePinChangeWithTime` (output
+   * only) would otherwise leave it flat. Grading is unaffected: the headless
+   * harness records its own DDR-aware edges and never reads this path.
    */
   setPinState(arduinoPin: number, state: boolean): void {
+    this.applyExternalPin(arduinoPin, state);
+
+    if (this.externalPinLevels.get(arduinoPin) !== state) {
+      this.externalPinLevels.set(arduinoPin, state);
+      if (this.onPinChangeWithTime && this.cpu) {
+        this.onPinChangeWithTime(arduinoPin, state, this.cpu.cycles / 16_000);
+      }
+    }
+  }
+
+  /** Apply the external level to the right port/bit for this board variant. */
+  private applyExternalPin(arduinoPin: number, state: boolean): void {
     if (this.boardVariant === 'mega') {
       const entry = MEGA_PIN_TO_PORT[arduinoPin];
       if (entry) {
