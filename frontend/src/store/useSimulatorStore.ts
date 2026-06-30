@@ -741,6 +741,57 @@ function readBoardSimulationTimeMs(boardId: string): number {
 
 configureSimulationTimeReader(readBoardSimulationTimeMs);
 
+function adcChannelForPin(boardKind: BoardKind, pin: number): number | null {
+  if (boardKind === 'arduino-uno' || boardKind === 'arduino-nano') {
+    return pin >= 14 && pin <= 21 ? pin - 14 : null;
+  }
+  if (boardKind === 'arduino-mega') return pin >= 54 && pin <= 69 ? pin - 54 : null;
+  if (boardKind === 'raspberry-pi-pico' || boardKind === 'pi-pico-w') {
+    return pin >= 26 && pin <= 29 ? pin - 26 : null;
+  }
+  return pin;
+}
+
+function attachPinTelemetry(boardId: string, boardKind: BoardKind, pinManager: PinManager): void {
+  pinManager.onAnyPwmChange((pin, duty, preciseTimeMs) => {
+    publishSimulationTelemetry({
+      type: 'pwm-sample',
+      boardId,
+      pin,
+      duty,
+      timeMs: preciseTimeMs ?? readBoardSimulationTimeMs(boardId),
+    });
+  });
+  pinManager.onAnyAnalogChange((pin, volts) => {
+    const channel = adcChannelForPin(boardKind, pin);
+    if (channel == null) return;
+    publishSimulationTelemetry({
+      type: 'adc-input',
+      boardId,
+      channel,
+      volts,
+      timeMs: readBoardSimulationTimeMs(boardId),
+    });
+  });
+}
+
+function publishRunStart(boardId: string, boardKind: BoardKind): void {
+  publishSimulationTelemetry({ type: 'run-start', boardId });
+  const pinManager = pinManagerMap.get(boardId);
+  if (!pinManager) return;
+  for (const [pin, volts] of pinManager.getAnalogValues()) {
+    const channel = adcChannelForPin(boardKind, pin);
+    if (channel == null) continue;
+    publishSimulationTelemetry({
+      type: 'adc-input',
+      boardId,
+      channel,
+      volts,
+      timeMs: readBoardSimulationTimeMs(boardId),
+    });
+  }
+}
+
 /** Set a board's WiFi status (used by the pro PIO peripheral to surface the
  *  Pico W's WiFi state into the canvas badge). */
 export const setBoardWifiStatus = (id: string, ws: WifiStatus) =>
@@ -1015,7 +1066,7 @@ const INITIAL_BOARD: BoardInstance = {
 // ~200 Hz emit ~600 bytes/s, and a raw `set()` per byte overwhelms React's
 // useSyncExternalStore reconciliation (→ "Maximum update depth exceeded").
 // The batcher coalesces chunks per animation frame (≤60 Hz), grouped by board.
-const { append: appendSerial } = createSerialBatcher((perBoard) => {
+const { append: enqueueSerial } = createSerialBatcher((perBoard) => {
   useSimulatorStore.setState((s) => {
     let globalOut = s.serialOutput;
     const boards = s.boards.map((b) => {
@@ -1028,11 +1079,23 @@ const { append: appendSerial } = createSerialBatcher((perBoard) => {
   });
 });
 
+function appendSerial(boardId: string, char: string): void {
+  publishSimulationTelemetry({
+    type: 'serial-byte',
+    boardId,
+    byte: char.charCodeAt(0) & 0xff,
+    char,
+    timeMs: readBoardSimulationTimeMs(boardId),
+  });
+  enqueueSerial(boardId, char);
+}
+
 // ── Store ─────────────────────────────────────────────────────────────────
 export const useSimulatorStore = create<SimulatorState>((set, get) => {
   // Initialise runtime objects for the default board
   const initialPm = new PinManager();
   pinManagerMap.set(INITIAL_BOARD_ID, initialPm);
+  attachPinTelemetry(INITIAL_BOARD_ID, 'arduino-uno', initialPm);
 
   function getOscilloscopeCallback(boardId: string) {
     return (pin: number, state: boolean, timeMs: number) => {
@@ -1078,6 +1141,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => {
 
       const pm = new PinManager();
       pinManagerMap.set(id, pm);
+      attachPinTelemetry(id, boardKind, pm);
 
       const serialCallback = (ch: string) => appendSerial(id, ch);
 
@@ -1685,7 +1749,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => {
         return;
       }
 
-      publishSimulationTelemetry({ type: 'run-start', boardId });
+      publishRunStart(boardId, board.boardKind);
 
       if (isPiBoardKind(board.boardKind)) {
         getBoardBridge(boardId)?.connect();

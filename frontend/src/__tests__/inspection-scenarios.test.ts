@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { inspectionScenarios as fixtureScenarios } from '../../../bench/inspection-scenarios/registry';
 import {
+  deriveDefaultTaskMonitor,
   findInspectionScenario,
   validateInspectionScenarios,
   type InspectionScenario,
@@ -19,12 +20,19 @@ beforeAll(() => {
 describe('benchmark inspection scenarios', () => {
   it('validates the tracked registry and rejects duplicate ids', () => {
     const scenarios = validateInspectionScenarios(fixtureScenarios);
-    expect(scenarios.map((scenario) => scenario.id)).toEqual(['uno-led-blink']);
+    expect(scenarios.map((scenario) => scenario.id)).toEqual([
+      'uno-led-blink',
+      'uno-monitor-channels',
+    ]);
     expect(scenarios[0]?.taskMonitor).toMatchObject({
-      kind: 'led-blink',
-      source: { boardId: 'arduino-uno', componentId: 'bench_led', pin: 13 },
-      target: { frequencyHz: 1, dutyCycle: 0.5, tolerancePct: 5, minPeriods: 2 },
+      boardId: 'arduino-uno',
+      probes: [{ channel: 'pinEdges', pin: 13 }, { channel: 'serial' }],
     });
+    expect(scenarios[1]?.taskMonitor.probes.map((probe) => probe.channel)).toEqual([
+      'pwm',
+      'adc',
+      'serial',
+    ]);
     expect(findInspectionScenario(scenarios, 'missing')).toBeNull();
     expect(() => validateInspectionScenarios([fixtureScenarios[0], fixtureScenarios[0]])).toThrow(
       /Duplicate/,
@@ -32,9 +40,29 @@ describe('benchmark inspection scenarios', () => {
   });
 
   it('rejects monitor metadata that points outside the scenario', () => {
-    const scenario = structuredClone(fixtureScenarios[0]);
-    scenario.taskMonitor.source.boardId = 'missing-board';
+    const scenario = structuredClone(fixtureScenarios[1]);
+    if (!scenario.taskMonitor) throw new Error('fixture monitor missing');
+    scenario.taskMonitor.boardId = 'missing-board';
     expect(() => validateInspectionScenarios([scenario])).toThrow(/board was not found/);
+  });
+
+  it('derives connected GPIO plus serial defaults and rejects invalid explicit probes', () => {
+    const project = validateInspectionScenarios([fixtureScenarios[0]])[0].project;
+    const monitor = deriveDefaultTaskMonitor(project);
+    expect(monitor.probes).toEqual([
+      {
+        channel: 'pinEdges',
+        pin: 13,
+        label: 'GPIO 13',
+        derive: ['level', 'digitalTiming', 'waveform'],
+      },
+      { channel: 'serial', label: 'Serial TX', derive: ['log'] },
+    ]);
+
+    const invalid = structuredClone(fixtureScenarios[1]);
+    if (!invalid.taskMonitor) throw new Error('fixture monitor missing');
+    invalid.taskMonitor.probes[0].derive = ['log'];
+    expect(() => validateInspectionScenarios([invalid])).toThrow(/derivation/);
   });
 
   it('loads the Uno smoke fixture into simulator and editor stores', () => {

@@ -127,6 +127,13 @@ describe('PinManager — PWM duty cycle', () => {
     expect(cb).toHaveBeenCalledWith(9, 0.5);
   });
 
+  it('fans PWM updates out to passive all-pin observers with simulated time', () => {
+    const observer = vi.fn();
+    pm.onAnyPwmChange(observer);
+    pm.updatePwm(3, 0.5, 12.25);
+    expect(observer).toHaveBeenCalledWith(3, 0.5, 12.25);
+  });
+
   it('stores the latest PWM value', () => {
     pm.updatePwm(9, 0.75);
     expect(pm.getPwmValue(9)).toBe(0.75);
@@ -198,6 +205,14 @@ describe('PinManager — analog voltage', () => {
     pm.onAnalogChange(14, cb); // A0 = pin 14
     pm.setAnalogVoltage(14, 2.5);
     expect(cb).toHaveBeenCalledWith(14, 2.5);
+  });
+
+  it('fans analog updates out and retains a snapshot for run-start telemetry', () => {
+    const observer = vi.fn();
+    pm.onAnyAnalogChange(observer);
+    pm.setAnalogVoltage(15, 2.5);
+    expect(observer).toHaveBeenCalledWith(15, 2.5);
+    expect([...pm.getAnalogValues()]).toEqual([[15, 2.5]]);
   });
 
   it('fires for multiple analog pins independently', () => {

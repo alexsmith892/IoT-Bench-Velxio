@@ -17,6 +17,18 @@ export interface PropertyChangeDetail {
   value: unknown;
 }
 
+interface AdcPeripheral {
+  channelValues: number[];
+}
+
+interface AdcReadableSimulator {
+  getADC?: () => AdcPeripheral | null;
+}
+
+interface EspAdcSimulator {
+  setAdcVoltage?: (pin: number, voltage: number) => boolean;
+}
+
 /**
  * Dispatch a property change so the canvas can route it through
  * `updateComponent()`. Parts call this whenever a DOM / sensor-panel value
@@ -32,8 +44,8 @@ export function emitPropertyChange(componentId: string, propName: string, value:
 }
 
 /** Read the ADC instance from the simulator (returns null if not initialized) */
-export function getADC(avrSimulator: AnySimulator): any | null {
-  return (avrSimulator as any).getADC?.() ?? null;
+export function getADC(avrSimulator: AnySimulator): AdcPeripheral | null {
+  return (avrSimulator as unknown as AdcReadableSimulator).getADC?.() ?? null;
 }
 
 /**
@@ -47,8 +59,11 @@ export function getADC(avrSimulator: AnySimulator): any | null {
  */
 export function setAdcVoltage(simulator: AnySimulator, pin: number, voltage: number): boolean {
   // ESP32 BridgeShim: delegate to bridge via WebSocket
-  if (typeof (simulator as any).setAdcVoltage === 'function') {
-    return (simulator as any).setAdcVoltage(pin, voltage);
+  const espAdc = simulator as unknown as EspAdcSimulator;
+  if (typeof espAdc.setAdcVoltage === 'function') {
+    const applied = espAdc.setAdcVoltage(pin, voltage);
+    if (applied) simulator.pinManager?.setAnalogVoltage(pin, voltage);
+    return applied;
   }
   // RP2040: GPIO26-29 → ADC channels 0-3
   if (simulator instanceof RP2040Simulator) {
@@ -57,6 +72,7 @@ export function setAdcVoltage(simulator: AnySimulator, pin: number, voltage: num
       // RP2040 ADC: 12-bit, 3.3V reference
       const adcValue = Math.round((voltage / 3.3) * 4095);
       simulator.setADCValue(channel, adcValue);
+      simulator.pinManager.setAnalogVoltage(pin, voltage);
       return true;
     }
     console.warn(`[setAdcVoltage] RP2040 pin ${pin} is not an ADC pin (26-29)`);
@@ -68,5 +84,6 @@ export function setAdcVoltage(simulator: AnySimulator, pin: number, voltage: num
   const adc = getADC(simulator);
   if (!adc) return false;
   adc.channelValues[channel] = voltage;
+  simulator.pinManager.setAnalogVoltage(pin, voltage);
   return true;
 }

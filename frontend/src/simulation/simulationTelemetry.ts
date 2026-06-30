@@ -8,6 +8,27 @@ export type SimulationTelemetryEvent =
       pin: number;
       state: boolean;
       timeMs: number;
+    }
+  | {
+      type: 'serial-byte';
+      boardId: string;
+      byte: number;
+      char: string;
+      timeMs: number;
+    }
+  | {
+      type: 'pwm-sample';
+      boardId: string;
+      pin: number;
+      duty: number;
+      timeMs: number;
+    }
+  | {
+      type: 'adc-input';
+      boardId: string;
+      channel: number;
+      volts: number;
+      timeMs: number;
     };
 
 export type SimulationTelemetryListener = (event: SimulationTelemetryEvent) => void;

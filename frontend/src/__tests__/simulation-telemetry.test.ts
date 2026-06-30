@@ -19,9 +19,36 @@ describe('simulation telemetry hub', () => {
       state: true,
       timeMs: 2,
     });
+    publishSimulationTelemetry({
+      type: 'serial-byte',
+      boardId: 'uno',
+      byte: 65,
+      char: 'A',
+      timeMs: 2.1,
+    });
+    publishSimulationTelemetry({
+      type: 'pwm-sample',
+      boardId: 'uno',
+      pin: 3,
+      duty: 0.5,
+      timeMs: 2.2,
+    });
+    publishSimulationTelemetry({
+      type: 'adc-input',
+      boardId: 'uno',
+      channel: 1,
+      volts: 2.5,
+      timeMs: 2.3,
+    });
     unsubscribe();
     publishSimulationTelemetry({ type: 'run-stop', boardId: 'uno', timeMs: 3 });
-    expect(received.map((event) => event.type)).toEqual(['run-start', 'digital-edge']);
+    expect(received.map((event) => event.type)).toEqual([
+      'run-start',
+      'digital-edge',
+      'serial-byte',
+      'pwm-sample',
+      'adc-input',
+    ]);
   });
 
   it('normalizes invalid clock readings', () => {

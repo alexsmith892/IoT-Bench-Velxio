@@ -28,8 +28,11 @@ export class PinManager {
   private listeners: Map<number, Set<PinChangeCallback>> = new Map();
   private pwmListeners: Map<number, Set<PwmCallback>> = new Map();
   private analogListeners: Map<number, Set<AnalogCallback>> = new Map();
+  private pwmObservers: Set<PwmCallback> = new Set();
+  private analogObservers: Set<AnalogCallback> = new Set();
   private pinStates: Map<number, boolean> = new Map();
   private pwmValues: Map<number, number> = new Map();
+  private analogValues: Map<number, number> = new Map();
   // Pins the MCU has driven (digitalWrite / PWM / port-listener fire).
   // Consumed by collectPinStates.ts to emit a SPICE V-source only for
   // real outputs — leaving INPUT pins floating so external sensors
@@ -213,6 +216,12 @@ export class PinManager {
     };
   }
 
+  /** Observe every PWM update without taking over a pin-specific consumer. */
+  onAnyPwmChange(callback: PwmCallback): () => void {
+    this.pwmObservers.add(callback);
+    return () => this.pwmObservers.delete(callback);
+  }
+
   /**
    * Called by AVRSimulator when an OCR register changes (polled sub-frame).
    * timeMs is the precise simulated time of the change for accurate audio.
@@ -230,6 +239,7 @@ export class PinManager {
       // 2-arg call instead of a spurious trailing arg.
       callbacks.forEach((cb) => (cb.length >= 3 ? cb(pin, dutyCycle, timeMs) : cb(pin, dutyCycle)));
     }
+    this.pwmObservers.forEach((cb) => cb(pin, dutyCycle, timeMs));
   }
 
   getPwmValue(pin: number): number {
@@ -251,15 +261,27 @@ export class PinManager {
     };
   }
 
+  /** Observe every externally-injected analog value. */
+  onAnyAnalogChange(callback: AnalogCallback): () => void {
+    this.analogObservers.add(callback);
+    return () => this.analogObservers.delete(callback);
+  }
+
   /**
    * Inject a simulated analog voltage (0–5V) on an Arduino pin.
    * Notifies any registered analog listeners.
    */
   setAnalogVoltage(arduinoPin: number, voltage: number): void {
+    this.analogValues.set(arduinoPin, voltage);
     const callbacks = this.analogListeners.get(arduinoPin);
     if (callbacks) {
       callbacks.forEach((cb) => cb(arduinoPin, voltage));
     }
+    this.analogObservers.forEach((cb) => cb(arduinoPin, voltage));
+  }
+
+  getAnalogValues(): ReadonlyMap<number, number> {
+    return this.analogValues;
   }
 
   // ── Utility ──────────────────────────────────────────────────────────────
@@ -274,6 +296,8 @@ export class PinManager {
     this.listeners.clear();
     this.pwmListeners.clear();
     this.analogListeners.clear();
+    this.pwmObservers.clear();
+    this.analogObservers.clear();
     this.outputPins.clear();
   }
 }
