@@ -13,8 +13,9 @@ import { edgesForPin } from "../harness/trace";
 import type { Assertion } from "./types";
 import { resolveLedPin } from "./ledPinResolver";
 import { analyzeDigitalTiming } from "../../shared/digitalTiming";
+import { TOLERANCES } from "./policy";
 
-const DEFAULT_TOL_PCT = 5;
+const DEFAULT_TOL_PCT = TOLERANCES.freqPct;
 
 const withinPct = (actual: number, expected: number, tolPct: number) =>
   Math.abs(actual - expected) <= (expected * tolPct) / 100;
@@ -35,6 +36,7 @@ export function pinFrequency(
       return {
         name,
         pass: false,
+        category: "frequency",
         reason: `pin ${pin} never produced a full period (edges=${t.edgeCount}).`,
       };
     }
@@ -42,6 +44,7 @@ export function pinFrequency(
     return {
       name,
       pass,
+      category: "frequency",
       reason: `pin ${pin} freq=${round(t.freqHz, 4)}Hz vs ${opts.hz}Hz ±${tolPct}% → ${pass ? "ok" : "out of tolerance"}`,
     };
   };
@@ -59,6 +62,7 @@ export function pinDutyCycle(
       return {
         name,
         pass: false,
+        category: "duty",
         reason: `pin ${pin} has no complete high/low period.`,
       };
     }
@@ -66,6 +70,7 @@ export function pinDutyCycle(
     return {
       name,
       pass,
+      category: "duty",
       reason: `pin ${pin} duty=${round(t.dutyMean)} vs ${opts.duty} ±${tolPct}% → ${pass ? "ok" : "out of tolerance"}`,
     };
   };
@@ -79,6 +84,7 @@ export function pinIsHigh(pin: number, opts: { atMs: number }): Assertion {
     return {
       name,
       pass: level === 1,
+      category: "pin-state",
       reason: `pin ${pin} was ${level ? "HIGH" : "LOW"} at ${opts.atMs}ms`,
     };
   };
@@ -113,7 +119,7 @@ export function ledBlinks(opts: LedBlinksOpts): Assertion {
     try {
       pin = resolveLedPin(ctx.circuit, opts.component);
     } catch (err) {
-      return { name, pass: false, reason: (err as Error).message };
+      return { name, pass: false, category: "frequency", reason: (err as Error).message };
     }
 
     const t = analyzeDigitalTiming(edgesForPin(trace, pin));
@@ -121,6 +127,7 @@ export function ledBlinks(opts: LedBlinksOpts): Assertion {
       return {
         name,
         pass: false,
+        category: "frequency",
         reason: `LED "${opts.component}" (pin ${pin}) produced ${t.periods.length} period(s) < ${minPeriods} required — likely stuck (edges=${t.edgeCount}).`,
       };
     }
@@ -138,6 +145,7 @@ export function ledBlinks(opts: LedBlinksOpts): Assertion {
     return {
       name,
       pass,
+      category: "frequency",
       reason: `LED "${opts.component}" on pin ${pin}: freq=${round(t.freqHz, 4)}Hz vs ${opts.hz}Hz ±${tolPct}%${freqOk ? "" : " ✗"}${dutyPart} → ${pass ? "PASS" : "FAIL"}`,
     };
   };

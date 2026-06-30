@@ -58,6 +58,35 @@ const PORT_REGS: Record<PortName, { port: number; ddr: number }> = {
   D: { port: 0x2b, ddr: 0x2a },
 };
 
+// ── Hardware-PWM units (analogWrite via OCR) ─────────────────────────────────
+// We READ the OCR/TCCR registers to derive duty rather than capture the fast PWM
+// edges: the timer compare-output OVERRIDES the PORT bit the DDR-aware edge
+// recorder reads, so an analogWrite pin would log no driven edge. Addresses are
+// the ATmega328P data-space regs (matching avr8js timer{0,1,2}Config). Each unit
+// is connected (actively driving PWM) only when its COMnx bits in TCCRnA are
+// non-zero — that is what Arduino's analogWrite() sets. Duty = OCR(low 8 bits) /
+// 255 (analogWrite's 0..255 range; TOP=255 on all three Arduino PWM timers).
+interface PwmUnit {
+  pin: number;
+  /** TCCRnA address (carries the COMnx output-mode bits). */
+  tccrA: number;
+  /** OCRnx address (compare value; low byte used for the 0..255 duty). */
+  ocr: number;
+  /** Bit offset of this unit's COMnx field in TCCRnA (6 = unit A, 4 = unit B). */
+  comShift: 6 | 4;
+}
+const PWM_UNITS: PwmUnit[] = [
+  { pin: 6, tccrA: 0x44, ocr: 0x47, comShift: 6 }, // OC0A / PD6
+  { pin: 5, tccrA: 0x44, ocr: 0x48, comShift: 4 }, // OC0B / PD5
+  { pin: 9, tccrA: 0x80, ocr: 0x88, comShift: 6 }, // OC1A / PB1
+  { pin: 10, tccrA: 0x80, ocr: 0x8a, comShift: 4 }, // OC1B / PB2
+  { pin: 11, tccrA: 0xb0, ocr: 0xb3, comShift: 6 }, // OC2A / PB3
+  { pin: 3, tccrA: 0xb0, ocr: 0xb4, comShift: 4 }, // OC2B / PD3
+];
+
+/** Sample PWM duty every 1 ms of sim-time (cycle-counted → deterministic). */
+const PWM_SAMPLE_CYCLES = 16_000;
+
 export class AVRHarness implements SimHarness {
   readonly clockHz = CLOCK_HZ;
 
@@ -68,6 +97,8 @@ export class AVRHarness implements SimHarness {
   private portValues: Record<PortName, number> = { B: 0, C: 0, D: 0 };
   /** Last *driven output* level recorded per Arduino pin (DDR-aware). */
   private pinLevels = new Map<number, 0 | 1>();
+  /** Last PWM duty recorded per pin, to emit a sample only on change. */
+  private pwmDuties = new Map<number, number>();
   private recorder = new TraceRecorder();
 
   /** Simulated milliseconds elapsed since reset. */
@@ -91,6 +122,7 @@ export class AVRHarness implements SimHarness {
     this.recorder = new TraceRecorder();
     this.portValues = { B: 0, C: 0, D: 0 };
     this.pinLevels = new Map();
+    this.pwmDuties = new Map();
 
     this.cpu = new CPU(program, 8192);
     this.ports = {
@@ -148,9 +180,36 @@ export class AVRHarness implements SimHarness {
 
   runUntilMs(ms: number): void {
     const targetCycle = Math.round(ms * (this.clockHz / 1000));
+    // Run in 1 ms cycle-counted chunks so PWM duty is sampled at a deterministic
+    // cadence (no wall-clock). Instruction order is unchanged, so traces stay
+    // byte-identical across runs.
     while (this.cpu.cycles < targetCycle) {
-      avrInstruction(this.cpu);
-      this.cpu.tick();
+      const chunkEnd = Math.min(targetCycle, this.cpu.cycles + PWM_SAMPLE_CYCLES);
+      while (this.cpu.cycles < chunkEnd) {
+        avrInstruction(this.cpu);
+        this.cpu.tick();
+      }
+      this.samplePwm();
+    }
+  }
+
+  /**
+   * Read each PWM unit's OCR/COM state and record a duty sample when it changes.
+   * Duty is only meaningful while the compare output is connected (COMnx ≠ 0),
+   * which is exactly what analogWrite() sets; a disconnected unit is a plain GPIO
+   * pin captured by the edge recorder instead.
+   */
+  private samplePwm(): void {
+    for (const u of PWM_UNITS) {
+      const tccrA = this.cpu.data[u.tccrA] ?? 0;
+      const connected = ((tccrA >> u.comShift) & 0b11) !== 0;
+      if (!connected) continue;
+      const ocr = (this.cpu.data[u.ocr] ?? 0) & 0xff;
+      const duty = ocr / 255;
+      if (this.pwmDuties.get(u.pin) !== duty) {
+        this.pwmDuties.set(u.pin, duty);
+        this.recorder.recordPwmSample(this.tMs, u.pin, duty);
+      }
     }
   }
 
@@ -178,6 +237,17 @@ export class AVRHarness implements SimHarness {
     const clamped = Math.max(0, Math.min(5, volts));
     this.adc.channelValues[channel] = clamped;
     this.recorder.recordAdcInput(this.tMs, channel, clamped);
+  }
+
+  /**
+   * Deliver one RX byte to USART0 (what the firmware's `Serial.read()` sees) and
+   * echo it into the trace. avr8js paces the byte through its RX machinery; the
+   * caller (the stimulus scheduler) spaces bytes by baud so each completes before
+   * the next. `byte` is 0–255.
+   */
+  injectSerialByte(byte: number): void {
+    this.usart.writeByte(byte & 0xff);
+    this.recorder.recordSerialInput(this.tMs, String.fromCharCode(byte & 0xff));
   }
 
   trace(): Trace {
