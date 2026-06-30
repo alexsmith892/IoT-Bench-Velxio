@@ -16,7 +16,7 @@ function squareWave(pin: number, halfPeriodMs: number, cycles: number): Trace {
     pinEdges.push({ tMs: t, pin, value: 0 });
     t += halfPeriodMs;
   }
-  return { pinEdges, serial: [], adcInputs: [], durationMs: t, finalState: {} };
+  return { pinEdges, serial: [], adcInputs: [], pwmSamples: [], serialInputs: [], durationMs: t, finalState: {} };
 }
 
 describe('ledBlinks', () => {
@@ -38,6 +38,8 @@ describe('ledBlinks', () => {
       pinEdges: [{ tMs: 0, pin: 13, value: 1 }],
       serial: [],
       adcInputs: [],
+      pwmSamples: [],
+      serialInputs: [],
       durationMs: 3000,
       finalState: {},
     };

@@ -1,6 +1,6 @@
 import type { CircuitProject } from '../scenarios/types';
 import type { SketchFile } from '../compile/compileClient';
-import type { Contract } from '../contracts/types';
+import type { Contract, AssertionCategory } from '../contracts/types';
 import type { StimulusEvent } from '../harness/stimulus';
 
 /**
@@ -31,17 +31,38 @@ export type Difficulty = 'D1' | 'D2' | 'D3' | 'D4';
 export type HarnessTier = 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
 
 /**
- * A hidden stimulus/contract variant over the same firmware. Pass 2 adds the
- * `stimulus` injection timeline (in ms). Pass 3/4 add a per-variant `contract`
- * override and the variant-difficulty metadata. Authored `variants` stay empty
- * (`[]`) until the variant runner lands (Pass 4).
+ * A hidden stimulus/contract variant over the same firmware. Pass 2 added the
+ * `stimulus` injection timeline (in ms); Pass 4 added the per-variant `contract`
+ * override and `budgetMs`. A task with no authored variants is run as a single
+ * implicit base variant (base contract, no stimulus, `runMs` budget).
  */
 export interface OneShotVariant {
   id: string;
   description?: string;
   /** Timed input stimulus applied over this variant's run (see harness/stimulus.ts). */
   stimulus?: StimulusEvent[];
-  // Pass 3+: contract?: Contract;   // overrides/extends the base contract
+  /** Overrides the task's base `contract` for this variant (defaults to it). */
+  contract?: Contract;
+  /** Sim-time budget for this variant in ms (defaults to the task's `runMs`). */
+  budgetMs?: number;
+}
+
+/**
+ * An adversarial-wrong solution authored to be REJECTED by the gate (Pass 4,
+ * benchmark-design.md §5.2). Each declares the assertion category it MUST fail
+ * on, so the gate confirms it fails for the *intended* reason — not incidentally.
+ *
+ * NOTE (divergence from Pass 1): the schema originally typed `adversarialWrongs`
+ * as `string[]` (paths). Pass 4 needs the intended-failure-category per wrong, so
+ * it is now `AdversarialWrong[]`. See reflections/pass-04.md §1.
+ */
+export interface AdversarialWrong {
+  id: string;
+  /** Sketch file paths, relative to the scenario directory (like referenceSolution). */
+  files: string[];
+  /** The assertion category this wrong is designed to fail (the gate enforces it). */
+  expectFailCategory: AssertionCategory;
+  description?: string;
 }
 
 /**
@@ -76,8 +97,14 @@ export interface OneShotScenario extends BenchTask {
    * `scenarios/firmware.ts#readSketchFiles` so the two cannot drift.
    */
   referenceSolution: string[];
-  /** Adversarial-wrong solution file paths. PLACEHOLDER — populated in Pass 4. */
-  adversarialWrongs: string[];
-  /** Hidden variants. PLACEHOLDER — populated in Pass 2–4. */
+  /** Adversarial-wrong solutions, each with its intended-failure category (Pass 4). */
+  adversarialWrongs: AdversarialWrong[];
+  /** Hidden stimulus/contract variants (Pass 4). Empty → one implicit base variant. */
   variants: OneShotVariant[];
+  /**
+   * Resolve sketch file paths (relative to the scenario dir) to runnable
+   * `SketchFile[]`. Set by the task module (it owns the dir URL) so the gate can
+   * read `adversarialWrongs[].files` generically without knowing the layout.
+   */
+  resolveFirmware?: (relPaths: string[]) => SketchFile[];
 }

@@ -68,6 +68,25 @@ export function traceDump(trace: Trace): string {
     }
   }
 
+  // Hardware-PWM duty samples, grouped per pin (first → last + count).
+  if (trace.pwmSamples.length > 0) {
+    const pwmPins = [...new Set(trace.pwmSamples.map((s) => s.pin))].sort((a, b) => a - b);
+    for (const pin of pwmPins) {
+      const pts = trace.pwmSamples.filter((s) => s.pin === pin);
+      const first = pts[0].duty.toFixed(2);
+      const last = pts[pts.length - 1].duty.toFixed(2);
+      const span = pts.length === 1 ? `${first}` : `${first}→${last}`;
+      lines.push(`  pwm ${String(pin).padStart(2)}: duty ${span} [${pts.length} sample${pts.length === 1 ? '' : 's'}]`);
+    }
+  }
+
+  // Echoed serial-RX stimulus.
+  if (trace.serialInputs.length > 0) {
+    const rx = trace.serialInputs.map((s) => s.char).join('');
+    const clipped = rx.length > MAX_SERIAL_CHARS ? `${rx.slice(0, MAX_SERIAL_CHARS)}…` : rx;
+    lines.push(`  serial-rx: "${escapeSerial(clipped)}" [${rx.length} byte${rx.length === 1 ? '' : 's'}]`);
+  }
+
   // Any remaining finalState keys (halt already shown above).
   const finalKeys = Object.keys(trace.finalState ?? {}).filter((k) => k !== 'halt');
   if (finalKeys.length > 0) {

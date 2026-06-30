@@ -32,6 +32,27 @@ export interface AdcInput {
   volts: number;
 }
 
+export interface PwmSample {
+  /** Simulated time the duty was sampled. */
+  tMs: number;
+  /** Arduino PWM pin (3, 5, 6, 9, 10, 11 on the Uno). */
+  pin: number;
+  /**
+   * Duty cycle 0..1, derived from the OCR register / TOP (analogWrite range
+   * 0..255). Recorded only when the compare output is connected and the duty
+   * changes — see AVRHarness PWM sampler. NOT measured from pin edges: the
+   * timer compare-output overrides the PORT bit the edge recorder reads.
+   */
+  duty: number;
+}
+
+export interface SerialInput {
+  /** Simulated time the RX byte was injected. */
+  tMs: number;
+  /** The injected character (Latin-1). */
+  char: string;
+}
+
 export interface Trace {
   /** Every digital pin transition, in chronological order. */
   pinEdges: PinEdge[];
@@ -39,6 +60,10 @@ export interface Trace {
   serial: SerialByte[];
   /** Echoed ADC stimulus — every voltage injected, in application order. */
   adcInputs: AdcInput[];
+  /** Hardware-PWM duty samples (OCR-derived), in chronological order. */
+  pwmSamples: PwmSample[];
+  /** Echoed serial-RX stimulus — every byte injected, in application order. */
+  serialInputs: SerialInput[];
   /** Total simulated milliseconds the trace covers. */
   durationMs: number;
   /** Free-form end-of-run snapshot (final pin levels, halt reason, …). */
@@ -54,6 +79,8 @@ export class TraceRecorder {
   readonly pinEdges: PinEdge[] = [];
   readonly serial: SerialByte[] = [];
   readonly adcInputs: AdcInput[] = [];
+  readonly pwmSamples: PwmSample[] = [];
+  readonly serialInputs: SerialInput[] = [];
 
   recordPinEdge(tMs: number, pin: number, value: 0 | 1): void {
     this.pinEdges.push({ tMs, pin, value });
@@ -67,11 +94,21 @@ export class TraceRecorder {
     this.adcInputs.push({ tMs, channel, volts });
   }
 
+  recordPwmSample(tMs: number, pin: number, duty: number): void {
+    this.pwmSamples.push({ tMs, pin, duty });
+  }
+
+  recordSerialInput(tMs: number, char: string): void {
+    this.serialInputs.push({ tMs, char });
+  }
+
   finish(durationMs: number, finalState: Record<string, unknown> = {}): Trace {
     return {
       pinEdges: this.pinEdges,
       serial: this.serial,
       adcInputs: this.adcInputs,
+      pwmSamples: this.pwmSamples,
+      serialInputs: this.serialInputs,
       durationMs,
       finalState,
     };
@@ -83,7 +120,12 @@ export function edgesForPin(trace: Trace, pin: number): PinEdge[] {
   return trace.pinEdges.filter((e) => e.pin === pin);
 }
 
-/** Convenience: the full decoded serial string. */
+/** Convenience: the full decoded serial-TX string. */
 export function serialText(trace: Trace): string {
   return trace.serial.map((s) => s.char).join('');
+}
+
+/** Convenience: PWM samples for one pin, chronological. */
+export function pwmSamplesForPin(trace: Trace, pin: number): PwmSample[] {
+  return trace.pwmSamples.filter((s) => s.pin === pin);
 }

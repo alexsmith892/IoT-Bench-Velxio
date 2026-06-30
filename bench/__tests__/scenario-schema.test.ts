@@ -15,10 +15,10 @@ describe('OneShotScenario: uno-led-blink', () => {
     expect(typeof scenario.domain).toBe('string');
     expect(scenario.prompt.length).toBeGreaterThan(0);
     expect(scenario.libraries).toEqual([]);
-    // Placeholders that later passes populate.
+    // referenceSolution paths are canonical; wrongs/variants are authored in Pass 4+.
     expect(scenario.referenceSolution).toEqual(['sketch.ino']);
-    expect(scenario.adversarialWrongs).toEqual([]);
-    expect(scenario.variants).toEqual([]);
+    expect(Array.isArray(scenario.adversarialWrongs)).toBe(true);
+    expect(Array.isArray(scenario.variants)).toBe(true);
   });
 
   it('still satisfies the runtime BenchTask shape', () => {

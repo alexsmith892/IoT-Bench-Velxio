@@ -6,6 +6,7 @@
   "description": "IoT-Bench — headless grading harness for LLM-authored firmware on Velxio (AVR PoC).",
   "scripts": {
     "task": "tsx runner/cli.ts",
+    "gate:run": "tsx gate/cli.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "gate": "vitest run __tests__/*.task.test.ts"

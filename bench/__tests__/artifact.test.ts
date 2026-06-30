@@ -9,7 +9,7 @@ const result: RunResult = {
   verdict: 'PASS',
   pass: true,
   results: [{ name: 'ledBlinks(led)', pass: true, reason: 'ok' }],
-  trace: { pinEdges: [{ tMs: 0, pin: 13, value: 1 }], serial: [], adcInputs: [], durationMs: 1000, finalState: {} },
+  trace: { pinEdges: [{ tMs: 0, pin: 13, value: 1 }], serial: [], adcInputs: [], pwmSamples: [], serialInputs: [], durationMs: 1000, finalState: {} },
   compileStderr: '',
 };
 

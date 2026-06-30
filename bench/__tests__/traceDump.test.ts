@@ -22,6 +22,14 @@ const trace: Trace = {
     { tMs: 100, channel: 0, volts: 2.5 },
     { tMs: 200, channel: 0, volts: 5 },
   ],
+  pwmSamples: [
+    { tMs: 0, pin: 9, duty: 0 },
+    { tMs: 500, pin: 9, duty: 0.5 },
+  ],
+  serialInputs: [
+    { tMs: 5, char: 'O' },
+    { tMs: 6, char: 'N' },
+  ],
   durationMs: 3000,
   finalState: { halt: 'budget' },
 };
@@ -42,6 +50,9 @@ describe('traceDump', () => {
     expect(out).toContain('[6 bytes]');
     // Echoed ADC stimulus, summarised per channel.
     expect(out).toContain('adc ch0: 0.00→5.00V [3 pts]');
+    // Hardware-PWM duty samples and echoed serial-RX.
+    expect(out).toContain('pwm  9: duty 0.00→0.50 [2 samples]');
+    expect(out).toContain('serial-rx: "ON" [2 bytes]');
   });
 
   it('clips long edge lists and reports the overflow count', () => {
@@ -53,6 +64,8 @@ describe('traceDump', () => {
       })),
       serial: [],
       adcInputs: [],
+      pwmSamples: [],
+      serialInputs: [],
       durationMs: 400,
       finalState: {},
     };
@@ -62,7 +75,7 @@ describe('traceDump', () => {
   });
 
   it('handles an empty trace without throwing', () => {
-    const out = traceDump({ pinEdges: [], serial: [], adcInputs: [], durationMs: 0, finalState: {} });
+    const out = traceDump({ pinEdges: [], serial: [], adcInputs: [], pwmSamples: [], serialInputs: [], durationMs: 0, finalState: {} });
     expect(out).toContain('trace 0ms');
     expect(out).toContain('(no edges)');
     expect(out).toContain('serial: (none)');

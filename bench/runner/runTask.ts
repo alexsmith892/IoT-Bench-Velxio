@@ -8,8 +8,9 @@
 import { compile, type SketchFile } from '../compile/compileClient';
 import { AVRHarness } from '../harness/AVRHarness';
 import { traceDump } from '../harness/traceDump';
+import { runWithStimulus, type StimulusEvent } from '../harness/stimulus';
 import type { Trace } from '../harness/trace';
-import type { AssertionResult } from '../contracts/types';
+import type { AssertionResult, Contract } from '../contracts/types';
 import type { BenchTask } from '../tasks/types';
 
 export type Verdict = 'PASS' | 'FAIL' | 'COMPILE_FAIL';
@@ -21,6 +22,38 @@ export interface RunResult {
   results: AssertionResult[];
   trace: Trace | null;
   compileStderr: string;
+}
+
+/** One simulate+grade pass over an already-compiled hex (no recompile). */
+export interface GradeOptions {
+  /** Timed input stimulus (Pass 2). Defaults to none. */
+  stimulus?: StimulusEvent[];
+  /** Sim-time budget in ms. Defaults to the task's `runMs`. */
+  budgetMs?: number;
+  /** Contract to grade. Defaults to the task's base `contract`. */
+  contract?: Contract;
+}
+
+export interface GradeResult {
+  results: AssertionResult[];
+  pass: boolean;
+  trace: Trace;
+}
+
+/**
+ * Simulate the compiled `hex` on a FRESH harness (the reset-isolation boundary)
+ * with the given stimulus/budget, then grade it. Pulling compile out (it depends
+ * only on the firmware, not the variant) lets the variant runner reuse one hex
+ * across many variants.
+ */
+export function simulateAndGrade(task: BenchTask, hex: string, opts: GradeOptions = {}): GradeResult {
+  const harness = new AVRHarness();
+  harness.load(hex);
+  runWithStimulus(harness, opts.budgetMs ?? task.runMs, opts.stimulus ?? []);
+  const trace = harness.trace();
+  const contract = opts.contract ?? task.contract;
+  const results = contract.map((assertion) => assertion(trace, { circuit: task.circuit }));
+  return { results, pass: results.every((r) => r.pass), trace };
 }
 
 export async function runTask(
@@ -41,15 +74,8 @@ export async function runTask(
     };
   }
 
-  // 2. Simulate.
-  const harness = new AVRHarness();
-  harness.load(compiled.hex);
-  harness.runUntilMs(task.runMs);
-  const trace = harness.trace();
-
-  // 3. Grade.
-  const results = task.contract.map((assertion) => assertion(trace, { circuit: task.circuit }));
-  const pass = results.every((r) => r.pass);
+  // 2 + 3. Simulate (base variant: no stimulus, base contract) and grade.
+  const { results, pass, trace } = simulateAndGrade(task, compiled.hex);
 
   return {
     taskId: task.id,

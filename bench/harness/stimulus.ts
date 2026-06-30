@@ -30,6 +30,19 @@ export interface StimulusTarget {
   setPin(pin: number, level: 0 | 1): void;
   /** Set an ADC channel voltage (echoed into the trace by the harness). */
   setAnalogVoltage(channel: number, volts: number): void;
+  /** Deliver one RX byte to the firmware's serial input (0–255). Optional. */
+  injectSerialByte?(byte: number): void;
+}
+
+/** Default serial baud assumed when a `serial` event omits one. */
+export const DEFAULT_BAUD = 9600;
+
+/**
+ * Milliseconds to transmit one byte at `baud` (8N1 = 10 bits/byte). Used to
+ * space the per-byte injections so each RX completes before the next arrives.
+ */
+export function byteTimeMs(baud: number): number {
+  return (10 / baud) * 1000;
 }
 
 export type StimulusEvent =
@@ -50,7 +63,13 @@ export type StimulusEvent =
       toVolts: number;
       durationMs: number;
       stepMs?: number;
-    };
+    }
+  /**
+   * Inject a serial-RX string starting at `tMs`. Expanded to one per-byte
+   * injection, spaced by the byte-time at `baud` (default 9600), so each byte's
+   * RX completes before the next — the same expansion pattern as `adcRamp`.
+   */
+  | { kind: 'serial'; tMs: number; data: string; baud?: number };
 
 const DEFAULT_RAMP_STEP_MS = 10;
 
@@ -76,6 +95,16 @@ export function resolveStimulus(events: readonly StimulusEvent[]): ResolvedStim[
     } else if (ev.kind === 'adc') {
       const { channel, volts } = ev;
       out.push({ tMs: ev.tMs, seq: seq++, apply: (t) => t.setAnalogVoltage(channel, volts) });
+    } else if (ev.kind === 'serial') {
+      const dt = byteTimeMs(ev.baud && ev.baud > 0 ? ev.baud : DEFAULT_BAUD);
+      for (let i = 0; i < ev.data.length; i++) {
+        const byte = ev.data.charCodeAt(i) & 0xff;
+        out.push({
+          tMs: ev.tMs + i * dt,
+          seq: seq++,
+          apply: (t) => t.injectSerialByte?.(byte),
+        });
+      }
     } else {
       const step = ev.stepMs && ev.stepMs > 0 ? ev.stepMs : DEFAULT_RAMP_STEP_MS;
       const steps = Math.max(1, Math.ceil(ev.durationMs / step));
