@@ -249,6 +249,50 @@ export function adcDerivedValue(opts: AdcDerivedValueOpts): Assertion {
   };
 }
 
+// ── Compile-size (the cross-cutting memory check, §7) ─────────────────────────
+
+/**
+ * Assert the compiled program fits in `maxBytes` of flash. Reads
+ * `trace.compile.flashBytes` (attached by the runner from the compile step). The
+ * near-budget variant gates one task per difficulty tier against an ATtiny85-tight
+ * cap so memory frugality is a *behavioural* diagnostic, never a stated prompt
+ * rule (benchmark-design.md §6e/§7). Fails closed if the size is unavailable.
+ */
+export function maxFlashBytes(maxBytes: number): Assertion {
+  return (trace) => {
+    const name = `maxFlashBytes(${maxBytes})`;
+    const actual = trace.compile?.flashBytes;
+    if (actual == null) {
+      return { name, pass: false, category: 'compile-size', reason: 'compile flash size unavailable on the trace' };
+    }
+    const pass = actual <= maxBytes;
+    return {
+      name,
+      pass,
+      category: 'compile-size',
+      reason: `flash=${actual}B vs ≤${maxBytes}B → ${pass ? 'ok' : 'over budget'}`,
+    };
+  };
+}
+
+/** Assert static global RAM fits in `maxBytes`. Reads `trace.compile.ramBytes`. */
+export function maxRamBytes(maxBytes: number): Assertion {
+  return (trace) => {
+    const name = `maxRamBytes(${maxBytes})`;
+    const actual = trace.compile?.ramBytes;
+    if (actual == null) {
+      return { name, pass: false, category: 'compile-size', reason: 'compile RAM size unavailable on the trace' };
+    }
+    const pass = actual <= maxBytes;
+    return {
+      name,
+      pass,
+      category: 'compile-size',
+      reason: `ram=${actual}B vs ≤${maxBytes}B → ${pass ? 'ok' : 'over budget'}`,
+    };
+  };
+}
+
 // ── Value/format split (first-class, §6c) ─────────────────────────────────────
 
 export interface SerialValueOpts {

@@ -154,7 +154,10 @@ export async function gate(task: OneShotScenario, opts: GateOptions = {}): Promi
 
     for (let run = 0; run < runs; run++) {
       const order: OneShotVariant[] = shuffled(variants, rng);
-      const graded = gradeVariants(task, refCompiled.hex, order);
+      const graded = gradeVariants(task, refCompiled.hex, order, {
+        flashBytes: refCompiled.flashBytes,
+        ramBytes: refCompiled.ramBytes,
+      });
       for (const v of graded.variants) {
         if (!v.pass) allRunsPass = false;
         if (!hashesByVariant.has(v.variantId)) hashesByVariant.set(v.variantId, new Set());
@@ -246,7 +249,10 @@ async function gateWrong(
     };
   }
 
-  const graded = gradeVariants(task, compiled.hex, variants);
+  const graded = gradeVariants(task, compiled.hex, variants, {
+    flashBytes: compiled.flashBytes,
+    ramBytes: compiled.ramBytes,
+  });
   const present = categoriesPresent(graded.variants).has(w.expectFailCategory);
   const failedOnCategory = graded.variants.some((v) =>
     categoriesFailed(v.results).has(w.expectFailCategory),

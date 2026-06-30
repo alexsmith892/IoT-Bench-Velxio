@@ -21,8 +21,31 @@ export interface CompileResult {
   hex: string | null;
   /** Combined compiler diagnostics — always populated on failure. */
   stderr: string;
+  /**
+   * Compiled program size (flash), in bytes — from arduino-cli's
+   * "Sketch uses N bytes …" line. Undefined when the line is absent (e.g. a
+   * compile failure). The cross-cutting memory check (benchmark-design.md §7).
+   */
+  flashBytes?: number;
+  /**
+   * Static RAM use (globals), in bytes — from arduino-cli's
+   * "Global variables use N bytes …" line. Undefined when absent. NOTE: this is
+   * the *compile-time* global figure; runtime heap/stack is NOT observable (§3).
+   */
+  ramBytes?: number;
   /** Raw backend payload, for debugging. */
   raw: unknown;
+}
+
+/**
+ * Pull the first integer captured by `re` from `text`, or undefined. Used to
+ * read arduino-cli's size summary out of stdout/stderr.
+ */
+function firstInt(text: string, re: RegExp): number | undefined {
+  const m = re.exec(text);
+  if (!m) return undefined;
+  const n = Number(m[1]);
+  return Number.isFinite(n) ? n : undefined;
 }
 
 const DEFAULT_API = process.env.BENCH_API_BASE ?? 'http://127.0.0.1:8001';
@@ -57,10 +80,15 @@ export async function compile(
   };
 
   const ok = !!body.success && typeof body.hex_content === 'string' && body.hex_content.length > 0;
+  // arduino-cli prints the size summary to stdout; fall back to stderr just in
+  // case a toolchain routes it differently.
+  const sizeText = `${body.stdout ?? ''}\n${body.stderr ?? ''}`;
   return {
     ok,
     hex: ok ? body.hex_content! : null,
     stderr: [body.stderr, body.error].filter(Boolean).join('\n'),
+    flashBytes: firstInt(sizeText, /Sketch uses (\d+) bytes/),
+    ramBytes: firstInt(sizeText, /Global variables use (\d+) bytes/),
     raw: body,
   };
 }

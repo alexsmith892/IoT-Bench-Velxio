@@ -53,6 +53,19 @@ export interface SerialInput {
   char: string;
 }
 
+/**
+ * Compile-time program size — the cross-cutting memory observable
+ * (benchmark-design.md §7). Attached to the Trace by the runner *after*
+ * simulation (it comes from the compile step, not the harness), so size
+ * assertions (`maxFlashBytes`/`maxRamBytes`) read it like any other channel.
+ */
+export interface CompileMeta {
+  /** Program (flash) bytes, from arduino-cli's "Sketch uses N bytes …" line. */
+  flashBytes?: number;
+  /** Static global RAM bytes (compile-time; runtime heap is NOT observable). */
+  ramBytes?: number;
+}
+
 export interface Trace {
   /** Every digital pin transition, in chronological order. */
   pinEdges: PinEdge[];
@@ -68,6 +81,12 @@ export interface Trace {
   durationMs: number;
   /** Free-form end-of-run snapshot (final pin levels, halt reason, …). */
   finalState: Record<string, unknown>;
+  /**
+   * Compile-time size, if the runner attached it (benchmark-design.md §7). Absent
+   * for a bare harness run. Constant across runs for one firmware, so it is left
+   * out of the gate's determinism trace-hash.
+   */
+  compile?: CompileMeta;
 }
 
 /**

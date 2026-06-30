@@ -13,7 +13,7 @@ import { compile, type SketchFile, type CompileResult } from '../compile/compile
 import { simulateAndGrade } from './runTask';
 import { variantScore } from './score';
 import { resolveStimulus } from '../harness/stimulus';
-import type { Trace } from '../harness/trace';
+import type { Trace, CompileMeta } from '../harness/trace';
 import type { AssertionResult } from '../contracts/types';
 import type { BenchTask, OneShotVariant } from '../tasks/types';
 
@@ -61,6 +61,7 @@ export function gradeVariants(
   task: BenchTask & { variants?: OneShotVariant[] },
   hex: string,
   variants: OneShotVariant[] = effectiveVariants(task),
+  compileMeta?: CompileMeta,
 ): { variants: VariantRunResult[]; taskScore: number; warnings: string[] } {
   const warnings: string[] = [];
   const out: VariantRunResult[] = [];
@@ -78,6 +79,7 @@ export function gradeVariants(
       stimulus: v.stimulus,
       budgetMs,
       contract: v.contract,
+      compileMeta,
     });
     out.push({
       variantId: v.id,
@@ -113,7 +115,10 @@ export async function runVariants(
       warnings: [],
     };
   }
-  const graded = gradeVariants(task, compiled.hex);
+  const graded = gradeVariants(task, compiled.hex, effectiveVariants(task), {
+    flashBytes: compiled.flashBytes,
+    ramBytes: compiled.ramBytes,
+  });
   return {
     taskId: task.id,
     compiled: true,

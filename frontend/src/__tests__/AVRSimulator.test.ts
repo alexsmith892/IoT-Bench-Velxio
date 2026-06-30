@@ -79,6 +79,24 @@ describe('AVRSimulator — lifecycle', () => {
     expect(sim.isRunning()).toBe(false);
   });
 
+  it('setPinState publishes a digital-edge for external INPUT changes (monitor)', () => {
+    sim.loadHex(EMPTY_HEX);
+    const edges: Array<{ pin: number; state: boolean }> = [];
+    sim.onPinChangeWithTime = (pin, state) => edges.push({ pin, state });
+
+    // Idle-HIGH seed (a button's INPUT_PULLUP rest level), press, release.
+    sim.setPinState(2, true);
+    sim.setPinState(2, false);
+    sim.setPinState(2, false); // no change → no extra edge
+    sim.setPinState(2, true);
+
+    expect(edges).toEqual([
+      { pin: 2, state: true },
+      { pin: 2, state: false },
+      { pin: 2, state: true },
+    ]);
+  });
+
   it('stop() is idempotent (safe to call when not running)', () => {
     expect(() => sim.stop()).not.toThrow();
     expect(sim.isRunning()).toBe(false);

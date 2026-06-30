@@ -9,7 +9,7 @@ import { compile, type SketchFile } from '../compile/compileClient';
 import { AVRHarness } from '../harness/AVRHarness';
 import { traceDump } from '../harness/traceDump';
 import { runWithStimulus, type StimulusEvent } from '../harness/stimulus';
-import type { Trace } from '../harness/trace';
+import type { Trace, CompileMeta } from '../harness/trace';
 import type { AssertionResult, Contract } from '../contracts/types';
 import type { BenchTask } from '../tasks/types';
 
@@ -32,6 +32,12 @@ export interface GradeOptions {
   budgetMs?: number;
   /** Contract to grade. Defaults to the task's base `contract`. */
   contract?: Contract;
+  /**
+   * Compile-time size, attached to `trace.compile` so size assertions
+   * (`maxFlashBytes`/`maxRamBytes`) can read it. Comes from the compile step,
+   * not the harness (benchmark-design.md §7).
+   */
+  compileMeta?: CompileMeta;
 }
 
 export interface GradeResult {
@@ -51,6 +57,7 @@ export function simulateAndGrade(task: BenchTask, hex: string, opts: GradeOption
   harness.load(hex);
   runWithStimulus(harness, opts.budgetMs ?? task.runMs, opts.stimulus ?? []);
   const trace = harness.trace();
+  if (opts.compileMeta) trace.compile = opts.compileMeta;
   const contract = opts.contract ?? task.contract;
   const results = contract.map((assertion) => assertion(trace, { circuit: task.circuit }));
   return { results, pass: results.every((r) => r.pass), trace };
@@ -75,7 +82,9 @@ export async function runTask(
   }
 
   // 2 + 3. Simulate (base variant: no stimulus, base contract) and grade.
-  const { results, pass, trace } = simulateAndGrade(task, compiled.hex);
+  const { results, pass, trace } = simulateAndGrade(task, compiled.hex, {
+    compileMeta: { flashBytes: compiled.flashBytes, ramBytes: compiled.ramBytes },
+  });
 
   return {
     taskId: task.id,
