@@ -7,6 +7,7 @@
  */
 import { compile, type SketchFile } from '../compile/compileClient';
 import { AVRHarness } from '../harness/AVRHarness';
+import { traceDump } from '../harness/traceDump';
 import type { Trace } from '../harness/trace';
 import type { AssertionResult } from '../contracts/types';
 import type { BenchTask } from '../tasks/types';
@@ -77,13 +78,12 @@ export function formatReport(result: RunResult): string {
   }
 
   if (result.trace) {
-    const edges = result.trace.pinEdges;
-    const summary = edges
-      .slice(0, 8)
-      .map((e) => `${Math.round(e.tMs)}ms${e.value ? '↑' : '↓'}(p${e.pin})`)
-      .join(' ');
-    const more = edges.length > 8 ? ` …(+${edges.length - 8})` : '';
-    lines.push(`  pin edges: ${summary}${more}`);
+    lines.push(
+      traceDump(result.trace)
+        .split('\n')
+        .map((l) => `  ${l}`)
+        .join('\n'),
+    );
   }
 
   for (const r of result.results) {

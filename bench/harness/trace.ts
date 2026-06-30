@@ -23,11 +23,22 @@ export interface SerialByte {
   char: string;
 }
 
+export interface AdcInput {
+  /** Simulated time the channel voltage was set. */
+  tMs: number;
+  /** ADC channel (0 = A0). */
+  channel: number;
+  /** Volts applied (clamped to the ADC range when set). */
+  volts: number;
+}
+
 export interface Trace {
   /** Every digital pin transition, in chronological order. */
   pinEdges: PinEdge[];
   /** USART0 TX bytes (decoded as Latin-1 chars). */
   serial: SerialByte[];
+  /** Echoed ADC stimulus — every voltage injected, in application order. */
+  adcInputs: AdcInput[];
   /** Total simulated milliseconds the trace covers. */
   durationMs: number;
   /** Free-form end-of-run snapshot (final pin levels, halt reason, …). */
@@ -42,6 +53,7 @@ export interface Trace {
 export class TraceRecorder {
   readonly pinEdges: PinEdge[] = [];
   readonly serial: SerialByte[] = [];
+  readonly adcInputs: AdcInput[] = [];
 
   recordPinEdge(tMs: number, pin: number, value: 0 | 1): void {
     this.pinEdges.push({ tMs, pin, value });
@@ -51,10 +63,15 @@ export class TraceRecorder {
     this.serial.push({ tMs, char });
   }
 
+  recordAdcInput(tMs: number, channel: number, volts: number): void {
+    this.adcInputs.push({ tMs, channel, volts });
+  }
+
   finish(durationMs: number, finalState: Record<string, unknown> = {}): Trace {
     return {
       pinEdges: this.pinEdges,
       serial: this.serial,
+      adcInputs: this.adcInputs,
       durationMs,
       finalState,
     };

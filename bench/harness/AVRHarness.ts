@@ -161,8 +161,23 @@ export class AVRHarness implements SimHarness {
     return this.drivenLevel(m.portName, m.bit);
   }
 
+  /**
+   * Drive the external value an INPUT pin reads (avr8js `AVRIOPort.setPin`).
+   * `level` is the logic level the firmware's `digitalRead`/PIN register sees —
+   * for a button to GND with `INPUT_PULLUP`, drive 0 = pressed, 1 = released.
+   * No effect (and not meaningful) on a pin the firmware has set to OUTPUT.
+   */
+  setPin(pin: number, level: 0 | 1): void {
+    const m = PIN_MAP[pin];
+    if (!m) return;
+    this.ports[m.portName].setPin(m.bit, level === 1);
+  }
+
+  /** Inject an ADC channel voltage (clamped 0–5 V) and echo it into the trace. */
   setAnalogVoltage(channel: number, volts: number): void {
-    this.adc.channelValues[channel] = Math.max(0, Math.min(5, volts));
+    const clamped = Math.max(0, Math.min(5, volts));
+    this.adc.channelValues[channel] = clamped;
+    this.recorder.recordAdcInput(this.tMs, channel, clamped);
   }
 
   trace(): Trace {

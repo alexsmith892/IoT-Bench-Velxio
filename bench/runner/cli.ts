@@ -10,6 +10,7 @@
 import { getTask, taskIds } from '../tasks/registry';
 import { runTask, formatReport } from './runTask';
 import { saveArtifact } from './artifact';
+import { envBanner } from '../env';
 
 async function main(): Promise<number> {
   const args = process.argv.slice(2);
@@ -26,6 +27,7 @@ async function main(): Promise<number> {
   }
 
   try {
+    console.log(envBanner());
     const result = await runTask(task);
     console.log(formatReport(result));
     if (writeArtifact) {

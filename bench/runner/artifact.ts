@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import type { BenchTask } from '../tasks/types';
 import type { RunResult } from './runTask';
+import { PINNED_ENV } from '../env';
 
 /** Default output dir: `bench/artifacts/` (gitignored). */
 export const DEFAULT_ARTIFACT_DIR =
@@ -24,6 +25,8 @@ export interface TraceArtifact {
   verdict: RunResult['verdict'];
   pass: boolean;
   savedAt: string;
+  /** Pinned toolchain that produced this trace (benchmark-design.md §5). */
+  env: typeof PINNED_ENV;
   results: RunResult['results'];
   compileStderr: string;
   trace: RunResult['trace'];
@@ -43,6 +46,7 @@ export function buildArtifact(task: BenchTask, result: RunResult, label = 'refer
     verdict: result.verdict,
     pass: result.pass,
     savedAt: new Date().toISOString(),
+    env: PINNED_ENV,
     results: result.results,
     compileStderr: result.compileStderr,
     trace: result.trace,
