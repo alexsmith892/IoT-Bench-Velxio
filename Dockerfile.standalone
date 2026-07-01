@@ -152,6 +152,8 @@ COPY scripts/ scripts/
 COPY bench/inspection-scenarios/ bench/inspection-scenarios/
 COPY bench/scenarios/ bench/scenarios/
 COPY bench/contracts/ bench/contracts/
+COPY bench/package.json bench/package.json
+COPY bench/scripts/ bench/scripts/
 WORKDIR /app/frontend
 # Lock files aren't committed in this repo (they're gitignored) — see the
 # note in .gitignore. The `rm -f` below is defense-in-depth in case
@@ -159,6 +161,9 @@ WORKDIR /app/frontend
 RUN rm -f package-lock.json \
  && npm install --include=optional \
  && npm run build:docker
+WORKDIR /app/bench
+RUN npm install --include=dev \
+ && npm run export:inspection
 
 
 # ---- Stage 2: Final Production Image ----
@@ -230,6 +235,7 @@ COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy built frontend assets from builder stage
 COPY --from=frontend-builder /app/frontend/dist /usr/share/nginx/html
+COPY --from=frontend-builder /app/bench/inspection-export /app/bench/inspection-export
 
 # Copy and configure entrypoint script (fix Windows CRLF → LF)
 COPY docker/entrypoint.sh /app/entrypoint.sh

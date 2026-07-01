@@ -1,0 +1,2101 @@
+{
+  "version": 1,
+  "exportedAt": "2026-07-01T15:00:58.421Z",
+  "scenarios": [
+    {
+      "id": "uno-led-blink",
+      "title": "Arduino Uno LED Blink",
+      "project": {
+        "format": "velxio-project",
+        "version": 1,
+        "exportedAt": "2026-06-29T00:00:00.000Z",
+        "name": "Uno LED Blink",
+        "boards": [
+          {
+            "id": "arduino-uno",
+            "boardKind": "arduino-uno",
+            "x": 50,
+            "y": 50,
+            "activeFileGroupId": "group-arduino-uno",
+            "languageMode": "arduino",
+            "serialBaudRate": 0,
+            "libraries": []
+          }
+        ],
+        "fileGroups": {
+          "group-arduino-uno": [
+            {
+              "name": "sketch.ino",
+              "content": "// Benchmark inspection smoke fixture: external LED on Arduino Uno pin 13.\n// The circuit routes pin 13 through a 220-ohm resistor and LED to ground.\n\nconstexpr int LED_PIN = 13;\n\nvoid setup() {\n  pinMode(LED_PIN, OUTPUT);\n}\n\nvoid loop() {\n  digitalWrite(LED_PIN, HIGH);\n  delay(500);\n  digitalWrite(LED_PIN, LOW);\n  delay(500);\n}\n"
+            }
+          ]
+        },
+        "components": [
+          {
+            "id": "bench_led",
+            "metadataId": "led",
+            "x": 430,
+            "y": 110,
+            "properties": {
+              "color": "red"
+            }
+          },
+          {
+            "id": "bench_resistor",
+            "metadataId": "resistor",
+            "x": 290,
+            "y": 140,
+            "properties": {
+              "value": "220"
+            }
+          }
+        ],
+        "wires": [
+          {
+            "id": "bench_wire_pin13",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "13",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_resistor",
+              "pinName": "1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#22c55e"
+          },
+          {
+            "id": "bench_wire_anode",
+            "start": {
+              "componentId": "bench_resistor",
+              "pinName": "2",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_led",
+              "pinName": "A",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#22c55e"
+          },
+          {
+            "id": "bench_wire_cathode",
+            "start": {
+              "componentId": "bench_led",
+              "pinName": "C",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          }
+        ],
+        "activeBoardId": "arduino-uno"
+      }
+    },
+    {
+      "id": "uno-monitor-channels",
+      "title": "Arduino Uno PWM, ADC, and Serial Monitor",
+      "project": {
+        "format": "velxio-project",
+        "version": 1,
+        "exportedAt": "2026-06-30T00:00:00.000Z",
+        "name": "Uno Monitor Channels",
+        "boards": [
+          {
+            "id": "arduino-uno",
+            "boardKind": "arduino-uno",
+            "x": 50,
+            "y": 50,
+            "activeFileGroupId": "group-arduino-uno",
+            "languageMode": "arduino",
+            "serialBaudRate": 0,
+            "libraries": []
+          }
+        ],
+        "fileGroups": {
+          "group-arduino-uno": [
+            {
+              "name": "sketch.ino",
+              "content": "constexpr int POT_PIN = A1;\nconstexpr int PWM_PIN = 3;\n\nunsigned long lastReportMs = 0;\n\nvoid setup() {\n  pinMode(PWM_PIN, OUTPUT);\n  Serial.begin(115200);\n}\n\nvoid loop() {\n  const unsigned long now = millis();\n  if (now - lastReportMs < 100) return;\n  lastReportMs = now;\n\n  const int adc = analogRead(POT_PIN);\n  const int duty = map(adc, 0, 1023, 0, 255);\n  analogWrite(PWM_PIN, duty);\n  Serial.print(\"ADC=\");\n  Serial.print(adc);\n  Serial.print(\" PWM=\");\n  Serial.println(duty);\n}\n"
+            }
+          ]
+        },
+        "components": [
+          {
+            "id": "monitor_pot",
+            "metadataId": "potentiometer",
+            "x": 390,
+            "y": 210,
+            "properties": {
+              "value": 640
+            }
+          },
+          {
+            "id": "monitor_led",
+            "metadataId": "led",
+            "x": 430,
+            "y": 90,
+            "properties": {
+              "color": "blue"
+            }
+          },
+          {
+            "id": "monitor_resistor",
+            "metadataId": "resistor",
+            "x": 295,
+            "y": 120,
+            "properties": {
+              "value": "220"
+            }
+          }
+        ],
+        "wires": [
+          {
+            "id": "monitor_pwm",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "3",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "monitor_resistor",
+              "pinName": "1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#22c55e"
+          },
+          {
+            "id": "monitor_led_anode",
+            "start": {
+              "componentId": "monitor_resistor",
+              "pinName": "2",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "monitor_led",
+              "pinName": "A",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#22c55e"
+          },
+          {
+            "id": "monitor_led_ground",
+            "start": {
+              "componentId": "monitor_led",
+              "pinName": "C",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          },
+          {
+            "id": "monitor_pot_signal",
+            "start": {
+              "componentId": "monitor_pot",
+              "pinName": "SIG",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "A1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#f59e0b"
+          },
+          {
+            "id": "monitor_pot_power",
+            "start": {
+              "componentId": "monitor_pot",
+              "pinName": "VCC",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "5V",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#ef4444"
+          },
+          {
+            "id": "monitor_pot_ground",
+            "start": {
+              "componentId": "monitor_pot",
+              "pinName": "GND",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.2",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          }
+        ],
+        "activeBoardId": "arduino-uno"
+      },
+      "taskMonitor": {
+        "boardId": "arduino-uno",
+        "probes": [
+          {
+            "channel": "pwm",
+            "pin": 3,
+            "label": "Mapped LED duty",
+            "derive": [
+              "value",
+              "trace"
+            ]
+          },
+          {
+            "channel": "adc",
+            "pin": 1,
+            "label": "Potentiometer A1",
+            "derive": [
+              "value",
+              "trace"
+            ]
+          },
+          {
+            "channel": "serial",
+            "label": "ADC/PWM report",
+            "derive": [
+              "log"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "active-low-interlock",
+      "title": "D1 · Active-Low Interlock",
+      "project": {
+        "format": "velxio-project",
+        "version": 1,
+        "exportedAt": "2026-06-30T00:00:00.000Z",
+        "name": "Active-Low Interlock",
+        "boards": [
+          {
+            "id": "arduino-uno",
+            "boardKind": "arduino-uno",
+            "x": 50,
+            "y": 50,
+            "activeFileGroupId": "group-arduino-uno",
+            "languageMode": "arduino",
+            "serialBaudRate": 0,
+            "libraries": []
+          }
+        ],
+        "fileGroups": {
+          "group-arduino-uno": [
+            {
+              "name": "sketch.ino",
+              "content": "// active_low_interlock (OS-D1-01) — reference solution.\n// Button on D2 (INPUT_PULLUP, to GND): released=HIGH, pressed=LOW.\n// LED on D7 through an inverting stage → active-low: LOW = on, HIGH = off.\n// LED off at startup; on while pressed, off while released; follow continuously.\n\nconst int BUTTON_PIN = 2;\nconst int LED_PIN = 7;\n\nvoid setup() {\n  pinMode(BUTTON_PIN, INPUT_PULLUP);\n  pinMode(LED_PIN, OUTPUT);\n  digitalWrite(LED_PIN, HIGH); // active-low: HIGH = off\n}\n\nvoid loop() {\n  bool pressed = digitalRead(BUTTON_PIN) == LOW;\n  digitalWrite(LED_PIN, pressed ? LOW : HIGH);\n}\n"
+            }
+          ]
+        },
+        "components": [
+          {
+            "id": "bench_button",
+            "metadataId": "pushbutton",
+            "x": 360,
+            "y": 210,
+            "properties": {}
+          },
+          {
+            "id": "bench_led",
+            "metadataId": "led",
+            "x": 430,
+            "y": 90,
+            "properties": {
+              "color": "red"
+            }
+          },
+          {
+            "id": "bench_resistor",
+            "metadataId": "resistor",
+            "x": 295,
+            "y": 120,
+            "properties": {
+              "value": "220"
+            }
+          }
+        ],
+        "wires": [
+          {
+            "id": "bench_wire_btn",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "2",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_button",
+              "pinName": "1.l",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#3b82f6"
+          },
+          {
+            "id": "bench_wire_btn_gnd",
+            "start": {
+              "componentId": "bench_button",
+              "pinName": "2.l",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          },
+          {
+            "id": "bench_wire_pin7",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "7",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_resistor",
+              "pinName": "1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#22c55e"
+          },
+          {
+            "id": "bench_wire_anode",
+            "start": {
+              "componentId": "bench_resistor",
+              "pinName": "2",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_led",
+              "pinName": "A",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#22c55e"
+          },
+          {
+            "id": "bench_wire_cathode",
+            "start": {
+              "componentId": "bench_led",
+              "pinName": "C",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.2",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          }
+        ],
+        "activeBoardId": "arduino-uno"
+      }
+    },
+    {
+      "id": "dual-input-safety-enable",
+      "title": "D1 · Dual-Input Safety Enable",
+      "project": {
+        "format": "velxio-project",
+        "version": 1,
+        "exportedAt": "2026-06-30T00:00:00.000Z",
+        "name": "Dual-Input Safety Enable",
+        "boards": [
+          {
+            "id": "arduino-uno",
+            "boardKind": "arduino-uno",
+            "x": 50,
+            "y": 50,
+            "activeFileGroupId": "group-arduino-uno",
+            "languageMode": "arduino",
+            "serialBaudRate": 0,
+            "libraries": []
+          }
+        ],
+        "fileGroups": {
+          "group-arduino-uno": [
+            {
+              "name": "sketch.ino",
+              "content": "// dual_input_safety_enable (OS-D1-02) — reference solution.\n// Two normally-open switches to ground on D4/D5 (INPUT_PULLUP → closed = LOW).\n// Active-high ENABLE on D8 is HIGH only while BOTH switches are closed.\n\nconst int SW1_PIN = 4;\nconst int SW2_PIN = 5;\nconst int ENABLE_PIN = 8;\n\nvoid setup() {\n  pinMode(SW1_PIN, INPUT_PULLUP);\n  pinMode(SW2_PIN, INPUT_PULLUP);\n  pinMode(ENABLE_PIN, OUTPUT);\n  digitalWrite(ENABLE_PIN, LOW);\n}\n\nvoid loop() {\n  bool both = digitalRead(SW1_PIN) == LOW && digitalRead(SW2_PIN) == LOW;\n  digitalWrite(ENABLE_PIN, both ? HIGH : LOW);\n}\n"
+            }
+          ]
+        },
+        "components": [
+          {
+            "id": "bench_sw1",
+            "metadataId": "pushbutton",
+            "x": 360,
+            "y": 170,
+            "properties": {}
+          },
+          {
+            "id": "bench_sw2",
+            "metadataId": "pushbutton",
+            "x": 360,
+            "y": 250,
+            "properties": {}
+          },
+          {
+            "id": "bench_led",
+            "metadataId": "led",
+            "x": 440,
+            "y": 90,
+            "properties": {
+              "color": "green"
+            }
+          },
+          {
+            "id": "bench_resistor",
+            "metadataId": "resistor",
+            "x": 300,
+            "y": 110,
+            "properties": {
+              "value": "220"
+            }
+          }
+        ],
+        "wires": [
+          {
+            "id": "bench_wire_sw1",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "4",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_sw1",
+              "pinName": "1.l",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#3b82f6"
+          },
+          {
+            "id": "bench_wire_sw1_gnd",
+            "start": {
+              "componentId": "bench_sw1",
+              "pinName": "2.l",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          },
+          {
+            "id": "bench_wire_sw2",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "5",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_sw2",
+              "pinName": "1.l",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#3b82f6"
+          },
+          {
+            "id": "bench_wire_sw2_gnd",
+            "start": {
+              "componentId": "bench_sw2",
+              "pinName": "2.l",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.2",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          },
+          {
+            "id": "bench_wire_pin8",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "8",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_resistor",
+              "pinName": "1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#22c55e"
+          },
+          {
+            "id": "bench_wire_anode",
+            "start": {
+              "componentId": "bench_resistor",
+              "pinName": "2",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_led",
+              "pinName": "A",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#22c55e"
+          },
+          {
+            "id": "bench_wire_cathode",
+            "start": {
+              "componentId": "bench_led",
+              "pinName": "C",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.3",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          }
+        ],
+        "activeBoardId": "arduino-uno"
+      }
+    },
+    {
+      "id": "tmp36-calibrated-report",
+      "title": "D1 · TMP36 Calibrated Report",
+      "project": {
+        "format": "velxio-project",
+        "version": 1,
+        "exportedAt": "2026-06-30T00:00:00.000Z",
+        "name": "TMP36 Calibrated Report",
+        "boards": [
+          {
+            "id": "arduino-uno",
+            "boardKind": "arduino-uno",
+            "x": 50,
+            "y": 50,
+            "activeFileGroupId": "group-arduino-uno",
+            "languageMode": "arduino",
+            "serialBaudRate": 115200,
+            "libraries": []
+          }
+        ],
+        "fileGroups": {
+          "group-arduino-uno": [
+            {
+              "name": "sketch.ino",
+              "content": "// tmp36_calibrated_report (OS-D1-03) — reference solution.\n// TMP36 on A0: ADC ref 5.0 V, 0..1023; 0.500 V at 0 °C, 0.010 V/°C.\n// Print TEMP_C=x.x (one decimal) every 250 ms at 115200 baud; first line < 300 ms.\n\nconst int SENSOR_PIN = A0;\n\nvoid setup() {\n  Serial.begin(115200);\n}\n\nvoid loop() {\n  int raw = analogRead(SENSOR_PIN);\n  float volts = raw * (5.0 / 1023.0);\n  float tempC = (volts - 0.5) / 0.01;\n  Serial.print(\"TEMP_C=\");\n  Serial.println(tempC, 1);\n  delay(250);\n}\n"
+            }
+          ]
+        },
+        "components": [
+          {
+            "id": "bench_sensor",
+            "metadataId": "potentiometer",
+            "x": 380,
+            "y": 200,
+            "properties": {
+              "value": 150
+            }
+          }
+        ],
+        "wires": [
+          {
+            "id": "bench_wire_sig",
+            "start": {
+              "componentId": "bench_sensor",
+              "pinName": "SIG",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "A0",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#f59e0b"
+          },
+          {
+            "id": "bench_wire_vcc",
+            "start": {
+              "componentId": "bench_sensor",
+              "pinName": "VCC",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "5V",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#ef4444"
+          },
+          {
+            "id": "bench_wire_gnd",
+            "start": {
+              "componentId": "bench_sensor",
+              "pinName": "GND",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          }
+        ],
+        "activeBoardId": "arduino-uno"
+      },
+      "taskMonitor": {
+        "boardId": "arduino-uno",
+        "probes": [
+          {
+            "channel": "adc",
+            "pin": 0,
+            "label": "TMP36 A0",
+            "derive": [
+              "value",
+              "trace"
+            ]
+          },
+          {
+            "channel": "serial",
+            "label": "TEMP_C report",
+            "derive": [
+              "log"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "potentiometer-pwm-map",
+      "title": "D1 · Potentiometer PWM Map",
+      "project": {
+        "format": "velxio-project",
+        "version": 1,
+        "exportedAt": "2026-06-30T00:00:00.000Z",
+        "name": "Potentiometer PWM Map",
+        "boards": [
+          {
+            "id": "arduino-uno",
+            "boardKind": "arduino-uno",
+            "x": 50,
+            "y": 50,
+            "activeFileGroupId": "group-arduino-uno",
+            "languageMode": "arduino",
+            "serialBaudRate": 0,
+            "libraries": []
+          }
+        ],
+        "fileGroups": {
+          "group-arduino-uno": [
+            {
+              "name": "sketch.ino",
+              "content": "// potentiometer_pwm_map (OS-D1-04) — reference solution.\n// Pot on A1 → PWM LED on D3. Linearly map ADC 0..1023 to duty 0..255, clamped,\n// refreshed at least every 20 ms.\n\nconst int POT_PIN = A1;\nconst int LED_PIN = 3;\n\nvoid setup() {\n  pinMode(LED_PIN, OUTPUT);\n}\n\nvoid loop() {\n  int raw = analogRead(POT_PIN);\n  int duty = map(raw, 0, 1023, 0, 255);\n  duty = constrain(duty, 0, 255);\n  analogWrite(LED_PIN, duty);\n  delay(10);\n}\n"
+            }
+          ]
+        },
+        "components": [
+          {
+            "id": "bench_pot",
+            "metadataId": "potentiometer",
+            "x": 380,
+            "y": 210,
+            "properties": {
+              "value": 512
+            }
+          },
+          {
+            "id": "bench_led",
+            "metadataId": "led",
+            "x": 440,
+            "y": 90,
+            "properties": {
+              "color": "yellow"
+            }
+          },
+          {
+            "id": "bench_resistor",
+            "metadataId": "resistor",
+            "x": 300,
+            "y": 110,
+            "properties": {
+              "value": "220"
+            }
+          }
+        ],
+        "wires": [
+          {
+            "id": "bench_wire_pwm",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "3",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_resistor",
+              "pinName": "1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#22c55e"
+          },
+          {
+            "id": "bench_wire_anode",
+            "start": {
+              "componentId": "bench_resistor",
+              "pinName": "2",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_led",
+              "pinName": "A",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#22c55e"
+          },
+          {
+            "id": "bench_wire_cathode",
+            "start": {
+              "componentId": "bench_led",
+              "pinName": "C",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          },
+          {
+            "id": "bench_wire_pot_sig",
+            "start": {
+              "componentId": "bench_pot",
+              "pinName": "SIG",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "A1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#f59e0b"
+          },
+          {
+            "id": "bench_wire_pot_vcc",
+            "start": {
+              "componentId": "bench_pot",
+              "pinName": "VCC",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "5V",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#ef4444"
+          },
+          {
+            "id": "bench_wire_pot_gnd",
+            "start": {
+              "componentId": "bench_pot",
+              "pinName": "GND",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.2",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          }
+        ],
+        "activeBoardId": "arduino-uno"
+      },
+      "taskMonitor": {
+        "boardId": "arduino-uno",
+        "probes": [
+          {
+            "channel": "adc",
+            "pin": 1,
+            "label": "Potentiometer A1",
+            "derive": [
+              "value",
+              "trace"
+            ]
+          },
+          {
+            "channel": "pwm",
+            "pin": 3,
+            "label": "LED duty (D3)",
+            "derive": [
+              "value",
+              "trace"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "hex-dip-to-7segment",
+      "title": "D1 · Hex DIP to 7-Segment",
+      "project": {
+        "format": "velxio-project",
+        "version": 1,
+        "exportedAt": "2026-06-30T00:00:00.000Z",
+        "name": "Hex DIP to 7-Segment",
+        "boards": [
+          {
+            "id": "arduino-uno",
+            "boardKind": "arduino-uno",
+            "x": 50,
+            "y": 50,
+            "activeFileGroupId": "group-arduino-uno",
+            "languageMode": "arduino",
+            "serialBaudRate": 0,
+            "libraries": []
+          }
+        ],
+        "fileGroups": {
+          "group-arduino-uno": [
+            {
+              "name": "sketch.ino",
+              "content": "// hex_dip_to_7segment (OS-D1-05) — reference solution.\n// DIP switches D2..D5 (INPUT_PULLUP, closed = LOW = 1; D2 = bit0, D5 = bit3) form\n// a 4-bit value. Common-cathode seven-segment: segments a..g on D6..D12, active-high.\n// Show the value as one uppercase hex digit (A b C d E F for 10..15).\n\nconst int SW_PINS[4] = {2, 3, 4, 5};      // bit 0..3\nconst int SEG_PINS[7] = {6, 7, 8, 9, 10, 11, 12}; // a..g\n\n// Bit 6 = segment a … bit 0 = segment g (active-high).\nconst byte FONT[16] = {\n  0b1111110, // 0\n  0b0110000, // 1\n  0b1101101, // 2\n  0b1111001, // 3\n  0b0110011, // 4\n  0b1011011, // 5\n  0b1011111, // 6\n  0b1110000, // 7\n  0b1111111, // 8\n  0b1111011, // 9\n  0b1110111, // A\n  0b0011111, // b\n  0b1001110, // C\n  0b0111101, // d\n  0b1001111, // E\n  0b1000111, // F\n};\n\nvoid setup() {\n  for (int i = 0; i < 4; i++) pinMode(SW_PINS[i], INPUT_PULLUP);\n  for (int i = 0; i < 7; i++) pinMode(SEG_PINS[i], OUTPUT);\n}\n\nvoid loop() {\n  int value = 0;\n  for (int i = 0; i < 4; i++) {\n    if (digitalRead(SW_PINS[i]) == LOW) value |= (1 << i);\n  }\n  byte pattern = FONT[value];\n  for (int i = 0; i < 7; i++) {\n    digitalWrite(SEG_PINS[i], (pattern >> (6 - i)) & 1 ? HIGH : LOW);\n  }\n}\n"
+            }
+          ]
+        },
+        "components": [
+          {
+            "id": "bench_seg",
+            "metadataId": "7segment",
+            "x": 470,
+            "y": 110,
+            "properties": {
+              "common": "cathode"
+            }
+          },
+          {
+            "id": "bench_sw0",
+            "metadataId": "pushbutton",
+            "x": 340,
+            "y": 150,
+            "properties": {}
+          },
+          {
+            "id": "bench_sw1",
+            "metadataId": "pushbutton",
+            "x": 340,
+            "y": 220,
+            "properties": {}
+          },
+          {
+            "id": "bench_sw2",
+            "metadataId": "pushbutton",
+            "x": 340,
+            "y": 290,
+            "properties": {}
+          },
+          {
+            "id": "bench_sw3",
+            "metadataId": "pushbutton",
+            "x": 340,
+            "y": 360,
+            "properties": {}
+          }
+        ],
+        "wires": [
+          {
+            "id": "bench_wire_sw0",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "2",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_sw0",
+              "pinName": "1.l",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#3b82f6"
+          },
+          {
+            "id": "bench_wire_sw0_gnd",
+            "start": {
+              "componentId": "bench_sw0",
+              "pinName": "2.l",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          },
+          {
+            "id": "bench_wire_sw1",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "3",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_sw1",
+              "pinName": "1.l",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#3b82f6"
+          },
+          {
+            "id": "bench_wire_sw1_gnd",
+            "start": {
+              "componentId": "bench_sw1",
+              "pinName": "2.l",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          },
+          {
+            "id": "bench_wire_sw2",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "4",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_sw2",
+              "pinName": "1.l",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#3b82f6"
+          },
+          {
+            "id": "bench_wire_sw2_gnd",
+            "start": {
+              "componentId": "bench_sw2",
+              "pinName": "2.l",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          },
+          {
+            "id": "bench_wire_sw3",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "5",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_sw3",
+              "pinName": "1.l",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#3b82f6"
+          },
+          {
+            "id": "bench_wire_sw3_gnd",
+            "start": {
+              "componentId": "bench_sw3",
+              "pinName": "2.l",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          },
+          {
+            "id": "bench_wire_seg_A",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "6",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_seg",
+              "pinName": "A",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#22c55e"
+          },
+          {
+            "id": "bench_wire_seg_B",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "7",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_seg",
+              "pinName": "B",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#22c55e"
+          },
+          {
+            "id": "bench_wire_seg_C",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "8",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_seg",
+              "pinName": "C",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#22c55e"
+          },
+          {
+            "id": "bench_wire_seg_D",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "9",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_seg",
+              "pinName": "D",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#22c55e"
+          },
+          {
+            "id": "bench_wire_seg_E",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "10",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_seg",
+              "pinName": "E",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#22c55e"
+          },
+          {
+            "id": "bench_wire_seg_F",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "11",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_seg",
+              "pinName": "F",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#22c55e"
+          },
+          {
+            "id": "bench_wire_seg_G",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "12",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_seg",
+              "pinName": "G",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#22c55e"
+          },
+          {
+            "id": "bench_wire_seg_com",
+            "start": {
+              "componentId": "bench_seg",
+              "pinName": "COM",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.2",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          }
+        ],
+        "activeBoardId": "arduino-uno"
+      }
+    },
+    {
+      "id": "debounced-toggle",
+      "title": "D2 · Debounced Toggle",
+      "project": {
+        "format": "velxio-project",
+        "version": 1,
+        "exportedAt": "2026-06-30T00:00:00.000Z",
+        "name": "Debounced Toggle",
+        "boards": [
+          {
+            "id": "arduino-uno",
+            "boardKind": "arduino-uno",
+            "x": 50,
+            "y": 50,
+            "activeFileGroupId": "group-arduino-uno",
+            "languageMode": "arduino",
+            "serialBaudRate": 0,
+            "libraries": []
+          }
+        ],
+        "fileGroups": {
+          "group-arduino-uno": [
+            {
+              "name": "sketch.ino",
+              "content": "// debounced_toggle (OS-D2-02) — reference solution.\n// Button D2 (INPUT_PULLUP, to GND): released=HIGH, pressed=LOW.\n// Active-low LED on D7 (LOW = on). Toggle once per DEBOUNCED press; a level must\n// be stable for >=30 ms before it counts; holding does not repeat — a further\n// toggle needs a debounced release then a new debounced press.\n\nconst int BTN_PIN = 2;\nconst int LED_PIN = 7;\nconst unsigned long DEBOUNCE_MS = 30;\n\nint ledState = HIGH;        // active-low: HIGH = off at startup\nint stableLevel = HIGH;     // debounced button level (HIGH = released)\nint lastReading = HIGH;\nunsigned long lastChangeMs = 0;\n\nvoid setup() {\n  pinMode(BTN_PIN, INPUT_PULLUP);\n  pinMode(LED_PIN, OUTPUT);\n  digitalWrite(LED_PIN, ledState);\n}\n\nvoid loop() {\n  int reading = digitalRead(BTN_PIN);\n  if (reading != lastReading) {\n    lastReading = reading;\n    lastChangeMs = millis();\n  }\n  if (millis() - lastChangeMs >= DEBOUNCE_MS && reading != stableLevel) {\n    stableLevel = reading;\n    if (stableLevel == LOW) {            // a newly debounced press\n      ledState = (ledState == HIGH) ? LOW : HIGH;\n      digitalWrite(LED_PIN, ledState);\n    }\n  }\n}\n"
+            }
+          ]
+        },
+        "components": [
+          {
+            "id": "bench_button",
+            "metadataId": "pushbutton",
+            "x": 360,
+            "y": 210,
+            "properties": {}
+          },
+          {
+            "id": "bench_led",
+            "metadataId": "led",
+            "x": 430,
+            "y": 90,
+            "properties": {
+              "color": "red"
+            }
+          },
+          {
+            "id": "bench_resistor",
+            "metadataId": "resistor",
+            "x": 295,
+            "y": 120,
+            "properties": {
+              "value": "220"
+            }
+          }
+        ],
+        "wires": [
+          {
+            "id": "bench_wire_btn",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "2",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_button",
+              "pinName": "1.l",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#3b82f6"
+          },
+          {
+            "id": "bench_wire_btn_gnd",
+            "start": {
+              "componentId": "bench_button",
+              "pinName": "2.l",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          },
+          {
+            "id": "bench_wire_pin7",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "7",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_resistor",
+              "pinName": "1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#22c55e"
+          },
+          {
+            "id": "bench_wire_anode",
+            "start": {
+              "componentId": "bench_resistor",
+              "pinName": "2",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_led",
+              "pinName": "A",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#22c55e"
+          },
+          {
+            "id": "bench_wire_cathode",
+            "start": {
+              "componentId": "bench_led",
+              "pinName": "C",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.2",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          }
+        ],
+        "activeBoardId": "arduino-uno"
+      }
+    },
+    {
+      "id": "light-alarm-hysteresis",
+      "title": "D2 · Light Alarm Hysteresis",
+      "project": {
+        "format": "velxio-project",
+        "version": 1,
+        "exportedAt": "2026-06-30T00:00:00.000Z",
+        "name": "Light Alarm Hysteresis",
+        "boards": [
+          {
+            "id": "arduino-uno",
+            "boardKind": "arduino-uno",
+            "x": 50,
+            "y": 50,
+            "activeFileGroupId": "group-arduino-uno",
+            "languageMode": "arduino",
+            "serialBaudRate": 0,
+            "libraries": []
+          }
+        ],
+        "fileGroups": {
+          "group-arduino-uno": [
+            {
+              "name": "sketch.ino",
+              "content": "// light_alarm_hysteresis (OS-D2-03) — reference solution.\n// Light sensor ADC on A2; active-high warning LED on D6.\n// LED on at reading <= 350, off at reading >= 450, HOLD state in between.\n// LED starts off. Sample at least every 20 ms.\n\nconst int SENSOR_PIN = A2;\nconst int LED_PIN = 6;\nconst int ON_AT = 350;   // reading <= 350 -> on\nconst int OFF_AT = 450;  // reading >= 450 -> off\n\nbool alarmOn = false;\n\nvoid setup() {\n  pinMode(LED_PIN, OUTPUT);\n  digitalWrite(LED_PIN, LOW); // off\n}\n\nvoid loop() {\n  int reading = analogRead(SENSOR_PIN);\n  if (reading <= ON_AT) {\n    alarmOn = true;\n  } else if (reading >= OFF_AT) {\n    alarmOn = false;\n  } // strictly between: retain previous state\n  digitalWrite(LED_PIN, alarmOn ? HIGH : LOW);\n  delay(20);\n}\n"
+            }
+          ]
+        },
+        "components": [
+          {
+            "id": "bench_sensor",
+            "metadataId": "potentiometer",
+            "x": 380,
+            "y": 210,
+            "properties": {
+              "value": 512
+            }
+          },
+          {
+            "id": "bench_led",
+            "metadataId": "led",
+            "x": 440,
+            "y": 90,
+            "properties": {
+              "color": "red"
+            }
+          },
+          {
+            "id": "bench_resistor",
+            "metadataId": "resistor",
+            "x": 300,
+            "y": 110,
+            "properties": {
+              "value": "220"
+            }
+          }
+        ],
+        "wires": [
+          {
+            "id": "bench_wire_sig",
+            "start": {
+              "componentId": "bench_sensor",
+              "pinName": "SIG",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "A2",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#f59e0b"
+          },
+          {
+            "id": "bench_wire_vcc",
+            "start": {
+              "componentId": "bench_sensor",
+              "pinName": "VCC",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "5V",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#ef4444"
+          },
+          {
+            "id": "bench_wire_gnd",
+            "start": {
+              "componentId": "bench_sensor",
+              "pinName": "GND",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          },
+          {
+            "id": "bench_wire_pin6",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "6",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_resistor",
+              "pinName": "1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#22c55e"
+          },
+          {
+            "id": "bench_wire_anode",
+            "start": {
+              "componentId": "bench_resistor",
+              "pinName": "2",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_led",
+              "pinName": "A",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#22c55e"
+          },
+          {
+            "id": "bench_wire_cathode",
+            "start": {
+              "componentId": "bench_led",
+              "pinName": "C",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.2",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          }
+        ],
+        "activeBoardId": "arduino-uno"
+      },
+      "taskMonitor": {
+        "boardId": "arduino-uno",
+        "probes": [
+          {
+            "channel": "adc",
+            "pin": 2,
+            "label": "Light sensor A2",
+            "derive": [
+              "value",
+              "trace"
+            ]
+          },
+          {
+            "channel": "pinEdges",
+            "pin": 6,
+            "label": "Warning LED (D6)",
+            "derive": [
+              "level",
+              "digitalTiming"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "responsive-dual-scheduler",
+      "title": "D2 · Responsive Dual Scheduler",
+      "project": {
+        "format": "velxio-project",
+        "version": 1,
+        "exportedAt": "2026-06-30T00:00:00.000Z",
+        "name": "Responsive Dual Scheduler",
+        "boards": [
+          {
+            "id": "arduino-uno",
+            "boardKind": "arduino-uno",
+            "x": 50,
+            "y": 50,
+            "activeFileGroupId": "group-arduino-uno",
+            "languageMode": "arduino",
+            "serialBaudRate": 0,
+            "libraries": []
+          }
+        ],
+        "fileGroups": {
+          "group-arduino-uno": [
+            {
+              "name": "sketch.ino",
+              "content": "// responsive_dual_scheduler (OS-D2-01) — reference solution.\n// Three concurrent behaviours, non-blocking:\n//   - LED A (D3): 1 Hz, 50% duty  → toggle every 500 ms\n//   - LED B (D5): 2 Hz, 50% duty  → toggle every 250 ms\n//   - Response LED (D8): mirrors the button (D2, INPUT_PULLUP) within 20 ms while\n//     both blink patterns continue uninterrupted.\n// All three outputs start LOW.\n\nconst int LED_A = 3;\nconst int LED_B = 5;\nconst int RESP  = 8;\nconst int BTN   = 2;\n\nunsigned long tA = 0, tB = 0;\nbool aOn = false, bOn = false;\n\nvoid setup() {\n  pinMode(LED_A, OUTPUT);\n  pinMode(LED_B, OUTPUT);\n  pinMode(RESP, OUTPUT);\n  pinMode(BTN, INPUT_PULLUP);\n  digitalWrite(LED_A, LOW);\n  digitalWrite(LED_B, LOW);\n  digitalWrite(RESP, LOW);\n}\n\nvoid loop() {\n  unsigned long now = millis();\n  if (now - tA >= 500) { tA = now; aOn = !aOn; digitalWrite(LED_A, aOn); }\n  if (now - tB >= 250) { tB = now; bOn = !bOn; digitalWrite(LED_B, bOn); }\n  // Runs every loop iteration (microseconds) → button mirrored well within 20 ms.\n  digitalWrite(RESP, digitalRead(BTN) == LOW ? HIGH : LOW);\n}\n"
+            }
+          ]
+        },
+        "components": [
+          {
+            "id": "bench_button",
+            "metadataId": "pushbutton",
+            "x": 360,
+            "y": 300,
+            "properties": {}
+          },
+          {
+            "id": "bench_led_a",
+            "metadataId": "led",
+            "x": 430,
+            "y": 80,
+            "properties": {
+              "color": "green"
+            }
+          },
+          {
+            "id": "bench_res_a",
+            "metadataId": "resistor",
+            "x": 300,
+            "y": 80,
+            "properties": {
+              "value": "220"
+            }
+          },
+          {
+            "id": "bench_led_b",
+            "metadataId": "led",
+            "x": 430,
+            "y": 150,
+            "properties": {
+              "color": "blue"
+            }
+          },
+          {
+            "id": "bench_res_b",
+            "metadataId": "resistor",
+            "x": 300,
+            "y": 150,
+            "properties": {
+              "value": "220"
+            }
+          },
+          {
+            "id": "bench_led_r",
+            "metadataId": "led",
+            "x": 430,
+            "y": 220,
+            "properties": {
+              "color": "yellow"
+            }
+          },
+          {
+            "id": "bench_res_r",
+            "metadataId": "resistor",
+            "x": 300,
+            "y": 220,
+            "properties": {
+              "value": "220"
+            }
+          }
+        ],
+        "wires": [
+          {
+            "id": "bench_wire_btn",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "2",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_button",
+              "pinName": "1.l",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#3b82f6"
+          },
+          {
+            "id": "bench_wire_btn_gnd",
+            "start": {
+              "componentId": "bench_button",
+              "pinName": "2.l",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          },
+          {
+            "id": "bench_wire_a",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "3",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_res_a",
+              "pinName": "1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#22c55e"
+          },
+          {
+            "id": "bench_wire_a_anode",
+            "start": {
+              "componentId": "bench_res_a",
+              "pinName": "2",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_led_a",
+              "pinName": "A",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#22c55e"
+          },
+          {
+            "id": "bench_wire_a_cathode",
+            "start": {
+              "componentId": "bench_led_a",
+              "pinName": "C",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.2",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          },
+          {
+            "id": "bench_wire_b",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "5",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_res_b",
+              "pinName": "1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#3b82f6"
+          },
+          {
+            "id": "bench_wire_b_anode",
+            "start": {
+              "componentId": "bench_res_b",
+              "pinName": "2",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_led_b",
+              "pinName": "A",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#3b82f6"
+          },
+          {
+            "id": "bench_wire_b_cathode",
+            "start": {
+              "componentId": "bench_led_b",
+              "pinName": "C",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.3",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          },
+          {
+            "id": "bench_wire_r",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "8",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_res_r",
+              "pinName": "1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#eab308"
+          },
+          {
+            "id": "bench_wire_r_anode",
+            "start": {
+              "componentId": "bench_res_r",
+              "pinName": "2",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_led_r",
+              "pinName": "A",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#eab308"
+          },
+          {
+            "id": "bench_wire_r_cathode",
+            "start": {
+              "componentId": "bench_led_r",
+              "pinName": "C",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.4",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          }
+        ],
+        "activeBoardId": "arduino-uno"
+      },
+      "taskMonitor": {
+        "boardId": "arduino-uno",
+        "probes": [
+          {
+            "channel": "pinEdges",
+            "pin": 3,
+            "label": "LED A 1 Hz (D3)",
+            "derive": [
+              "level",
+              "digitalTiming",
+              "waveform"
+            ]
+          },
+          {
+            "channel": "pinEdges",
+            "pin": 5,
+            "label": "LED B 2 Hz (D5)",
+            "derive": [
+              "level",
+              "digitalTiming",
+              "waveform"
+            ]
+          },
+          {
+            "channel": "pinEdges",
+            "pin": 2,
+            "label": "Button (D2)",
+            "derive": [
+              "level",
+              "waveform"
+            ]
+          },
+          {
+            "channel": "pinEdges",
+            "pin": 8,
+            "label": "Response LED (D8)",
+            "derive": [
+              "level",
+              "waveform"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "rolling-adc-average",
+      "title": "D2 · Rolling ADC Average",
+      "project": {
+        "format": "velxio-project",
+        "version": 1,
+        "exportedAt": "2026-06-30T00:00:00.000Z",
+        "name": "Rolling ADC Average",
+        "boards": [
+          {
+            "id": "arduino-uno",
+            "boardKind": "arduino-uno",
+            "x": 50,
+            "y": 50,
+            "activeFileGroupId": "group-arduino-uno",
+            "languageMode": "arduino",
+            "serialBaudRate": 115200,
+            "libraries": []
+          }
+        ],
+        "fileGroups": {
+          "group-arduino-uno": [
+            {
+              "name": "sketch.ino",
+              "content": "// rolling_adc_average (OS-D2-04) — reference solution.\n// A0 sampled every 25 ms. Once eight samples exist, after each new sample print\n// the truncated integer mean of the most recent eight as \"AVG=<n>\". Print nothing\n// before the eighth sample.\n\nconst int SENSOR_PIN = A0;\nconst unsigned long PERIOD_MS = 25;\nconst int WINDOW = 8;\n\nint samples[WINDOW];\nint idx = 0;\nint filled = 0;\nunsigned long tNext = 0;\n\nvoid setup() {\n  Serial.begin(115200);\n}\n\nvoid loop() {\n  unsigned long now = millis();\n  if ((long)(now - tNext) < 0) return;\n  tNext = now + PERIOD_MS;\n\n  samples[idx] = analogRead(SENSOR_PIN);\n  idx = (idx + 1) % WINDOW;\n  if (filled < WINDOW) filled++;\n\n  if (filled == WINDOW) {\n    long sum = 0;\n    for (int i = 0; i < WINDOW; i++) sum += samples[i];\n    long avg = sum / WINDOW;            // truncated toward zero (readings >= 0)\n    Serial.print(\"AVG=\");\n    Serial.println(avg);\n  }\n}\n"
+            }
+          ]
+        },
+        "components": [
+          {
+            "id": "bench_sensor",
+            "metadataId": "potentiometer",
+            "x": 380,
+            "y": 200,
+            "properties": {
+              "value": 512
+            }
+          }
+        ],
+        "wires": [
+          {
+            "id": "bench_wire_sig",
+            "start": {
+              "componentId": "bench_sensor",
+              "pinName": "SIG",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "A0",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#f59e0b"
+          },
+          {
+            "id": "bench_wire_vcc",
+            "start": {
+              "componentId": "bench_sensor",
+              "pinName": "VCC",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "5V",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#ef4444"
+          },
+          {
+            "id": "bench_wire_gnd",
+            "start": {
+              "componentId": "bench_sensor",
+              "pinName": "GND",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          }
+        ],
+        "activeBoardId": "arduino-uno"
+      },
+      "taskMonitor": {
+        "boardId": "arduino-uno",
+        "probes": [
+          {
+            "channel": "adc",
+            "pin": 0,
+            "label": "Signal A0",
+            "derive": [
+              "value",
+              "trace"
+            ]
+          },
+          {
+            "channel": "serial",
+            "label": "AVG report",
+            "derive": [
+              "log"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "integer-overflow-accumulator",
+      "title": "D2 · Integer Overflow Accumulator",
+      "project": {
+        "format": "velxio-project",
+        "version": 1,
+        "exportedAt": "2026-06-30T00:00:00.000Z",
+        "name": "Integer Overflow Accumulator",
+        "boards": [
+          {
+            "id": "arduino-uno",
+            "boardKind": "arduino-uno",
+            "x": 50,
+            "y": 50,
+            "activeFileGroupId": "group-arduino-uno",
+            "languageMode": "arduino",
+            "serialBaudRate": 115200,
+            "libraries": []
+          }
+        ],
+        "fileGroups": {
+          "group-arduino-uno": [
+            {
+              "name": "sketch.ino",
+              "content": "// integer_overflow_accumulator (OS-D2-05) — reference solution.\n// Line-oriented stats over Serial @115200. Each line is a signed decimal integer\n// in [-32768, 32767] or the exact word RESET. For each accepted integer, update\n// count/sum/min/max since the last reset and reply:\n//   N=k SUM=s MIN=lo MAX=hi\n// The running SUM can exceed the range of a single value, so it must NOT live in a\n// 16-bit int (that overflows after two full-magnitude samples). A 32-bit long is\n// sufficient; this reference uses a 64-bit accumulator (with a printInt64 helper)\n// to stay exact indefinitely. RESET zeroes all stats. A malformed/empty/out-of-range\n// line replies ERR and changes nothing. An overlong line is discarded through its\n// terminator with a single ERR.\n\nconst int MAX_LINE = 15;\n\nchar line[MAX_LINE + 1];\nint len = 0;\nbool overlong = false;\n\nlong long sumTotal = 0;   // 64-bit: exact well past 100000 full-magnitude samples\nunsigned long count = 0;\nlong minV = 0, maxV = 0;\n\nvoid printInt64(long long v) {\n  if (v < 0) { Serial.print('-'); v = -v; }\n  char tmp[20];\n  int i = 0;\n  if (v == 0) { Serial.print('0'); return; }\n  unsigned long long u = (unsigned long long)v;\n  while (u > 0) { tmp[i++] = char('0' + (int)(u % 10)); u /= 10; }\n  while (i > 0) Serial.print(tmp[--i]);\n}\n\nvoid report() {\n  Serial.print(\"N=\");\n  Serial.print(count);\n  Serial.print(\" SUM=\");\n  printInt64(sumTotal);\n  Serial.print(\" MIN=\");\n  Serial.print(minV);\n  Serial.print(\" MAX=\");\n  Serial.print(maxV);\n  Serial.print('\\n');\n}\n\nvoid resetStats() {\n  sumTotal = 0;\n  count = 0;\n  minV = 0;\n  maxV = 0;\n  report();\n}\n\nvoid processLine() {\n  line[len] = '\\0';\n  if (len == 5 && strcmp(line, \"RESET\") == 0) { resetStats(); return; }\n  if (len == 0) { Serial.println(\"ERR\"); return; }\n\n  int i = 0;\n  bool neg = false;\n  if (line[0] == '-') { neg = true; i = 1; if (len == 1) { Serial.println(\"ERR\"); return; } }\n  long val = 0;\n  for (; i < len; i++) {\n    if (line[i] < '0' || line[i] > '9') { Serial.println(\"ERR\"); return; }\n    val = val * 10 + (line[i] - '0');\n    if (val > 100000L) { Serial.println(\"ERR\"); return; } // overflow guard for parse\n  }\n  if (neg) val = -val;\n  if (val < -32768L || val > 32767L) { Serial.println(\"ERR\"); return; }\n\n  count++;\n  sumTotal += (long long)val;\n  if (count == 1) { minV = val; maxV = val; }\n  else { if (val < minV) minV = val; if (val > maxV) maxV = val; }\n  report();\n}\n\nvoid setup() {\n  Serial.begin(115200);\n}\n\nvoid loop() {\n  while (Serial.available()) {\n    char c = Serial.read();\n    if (c == '\\r') continue;\n    if (c == '\\n') {\n      if (overlong) { Serial.println(\"ERR\"); overlong = false; }\n      else processLine();\n      len = 0;\n      continue;\n    }\n    if (len >= MAX_LINE) overlong = true; // stop storing; wait for the terminator\n    else line[len++] = c;\n  }\n}\n"
+            }
+          ]
+        },
+        "components": [],
+        "wires": [],
+        "activeBoardId": "arduino-uno"
+      },
+      "taskMonitor": {
+        "boardId": "arduino-uno",
+        "probes": [
+          {
+            "channel": "serial",
+            "label": "Stats I/O",
+            "derive": [
+              "log"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

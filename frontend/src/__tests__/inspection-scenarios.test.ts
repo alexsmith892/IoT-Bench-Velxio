@@ -108,3 +108,17 @@ describe('benchmark inspection scenarios', () => {
     expect(shouldHideFileTabs(false, 1)).toBe(false);
   });
 });
+
+describe('runtime bench export JSON', () => {
+  it('validates the exported inspection scenarios file', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const exportPath = resolve(__dirname, '../../../bench/inspection-export/scenarios.json');
+    const payload = JSON.parse(readFileSync(exportPath, 'utf8')) as { scenarios: unknown[] };
+    const scenarios = validateInspectionScenarios(payload.scenarios);
+    expect(scenarios.length).toBeGreaterThan(0);
+    expect(scenarios.map((scenario) => scenario.id)).toEqual(
+      validateInspectionScenarios(fixtureScenarios).map((scenario) => scenario.id),
+    );
+  });
+});

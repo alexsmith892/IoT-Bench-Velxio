@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     # and to build redirect URLs from auth routes in the overlay.
     FRONTEND_URL: str = "http://localhost:5173"
 
+    # Bench inspection scenarios JSON (runtime API for Docker bench mode).
+    BENCH_SCENARIOS_PATH: str = "/app/bench/inspection-export/scenarios.json"
+
     # extra="ignore": tolerate legacy keys (DATA_DIR, SECRET_KEY, DATABASE_URL, …)
     # left over from pre-split .env files or from the velxio-prod overlay so the
     # OSS image starts cleanly instead of crashing with extra_forbidden.

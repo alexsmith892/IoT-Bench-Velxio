@@ -39,8 +39,10 @@ services:
       # to disable without rebuilding the image (fallback to per-compile
       # tempfile.TemporaryDirectory behaviour).
       - VELXIO_PERSISTENT_BUILD_DIR=1
+      - BENCH_SCENARIOS_PATH=/app/bench/inspection-export/scenarios.json
     volumes:
       - ./data:/app/data
+      - ./bench:/app/bench:ro
       - arduino-libs:/root/.arduino15
       - ccache:/var/cache/ccache
       - velxio-build:/var/lib/velxio-build

@@ -9,7 +9,8 @@
     "gate:run": "tsx gate/cli.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "gate": "vitest run __tests__/*.task.test.ts"
+    "gate": "vitest run __tests__/*.task.test.ts",
+    "export:inspection": "tsx scripts/export-inspection-scenarios.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

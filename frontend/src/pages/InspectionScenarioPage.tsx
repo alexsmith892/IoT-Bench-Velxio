@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { getInspectionScenario } from '../lib/inspectionScenarios';
+import {
+  loadInspectionScenario,
+  type InspectionScenario,
+  useRuntimeBenchApi,
+} from '../lib/inspectionScenarios';
+import { BenchScenarioNotFoundError } from '../services/benchScenariosService';
 import { loadVlxPayload } from '../utils/vlxFile';
 import { useCompileLogsStore } from '../store/useCompileLogsStore';
 import { useEditorStore } from '../store/useEditorStore';
@@ -26,10 +31,48 @@ const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 export const InspectionScenarioPage: React.FC = () => {
   const { scenarioId } = useParams<{ scenarioId: string }>();
-  const scenario = getInspectionScenario(scenarioId);
+  const [scenario, setScenario] = useState<InspectionScenario | null>(null);
+  const [scenarioLoading, setScenarioLoading] = useState(true);
+  const [scenarioError, setScenarioError] = useState<string | null>(null);
   const loadedIdRef = useRef<string | null>(null);
   const [readyId, setReadyId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadedIdRef.current = null;
+    setScenario(null);
+    setScenarioLoading(true);
+    setScenarioError(null);
+    setReadyId(null);
+    setLoadError(null);
+
+    void loadInspectionScenario(scenarioId)
+      .then((loaded) => {
+        if (cancelled) return;
+        setScenario(loaded);
+        if (!loaded) {
+          setScenarioError(`Inspection scenario "${scenarioId ?? ''}" was not found.`);
+        }
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        if (error instanceof BenchScenarioNotFoundError) {
+          setScenarioError(error.message);
+          return;
+        }
+        setScenarioError(
+          error instanceof Error ? error.message : 'Unknown scenario loading error.',
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setScenarioLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [scenarioId]);
 
   useEffect(() => {
     if (!scenario || loadedIdRef.current === scenario.id) return;
@@ -53,12 +96,22 @@ export const InspectionScenarioPage: React.FC = () => {
     }
   }, [scenario]);
 
-  if (!scenario) {
+  if (scenarioLoading) {
+    return <Shell>Loading inspection scenario…</Shell>;
+  }
+
+  if (scenarioError || !scenario) {
     return (
       <Shell>
-        <div style={{ textAlign: 'center' }}>
+        <div style={{ textAlign: 'center', maxWidth: 640, padding: 24 }}>
           <div style={{ fontSize: 42, color: '#666' }}>404</div>
-          <p>Inspection scenario &quot;{scenarioId ?? ''}&quot; was not found.</p>
+          <p>{scenarioError ?? `Inspection scenario "${scenarioId ?? ''}" was not found.`}</p>
+          {useRuntimeBenchApi ? (
+            <p style={{ color: '#9ca3af', fontSize: 14, marginTop: 16 }}>
+              If you added this scenario recently, run{' '}
+              <code>cd bench &amp;&amp; npm run export:inspection</code>, then refresh.
+            </p>
+          ) : null}
         </div>
       </Shell>
     );

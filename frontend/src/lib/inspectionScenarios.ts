@@ -184,6 +184,9 @@ export function validateInspectionScenarios(values: unknown[]): InspectionScenar
 
 export const inspectionScenarios = validateInspectionScenarios(rawScenarios);
 
+export const useRuntimeBenchApi =
+  import.meta.env.VITE_BENCH_MODE === 'true' && !import.meta.env.DEV;
+
 export function findInspectionScenario(
   scenarios: InspectionScenario[],
   id: string | undefined,
@@ -194,4 +197,15 @@ export function findInspectionScenario(
 
 export function getInspectionScenario(id: string | undefined): InspectionScenario | null {
   return findInspectionScenario(inspectionScenarios, id);
+}
+
+export async function loadInspectionScenario(
+  id: string | undefined,
+): Promise<InspectionScenario | null> {
+  if (!id) return null;
+  if (useRuntimeBenchApi) {
+    const { fetchInspectionScenario } = await import('../services/benchScenariosService');
+    return fetchInspectionScenario(id);
+  }
+  return getInspectionScenario(id);
 }
