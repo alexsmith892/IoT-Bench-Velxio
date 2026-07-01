@@ -9,7 +9,11 @@
     "gate:run": "tsx gate/cli.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "gate": "vitest run __tests__/*.task.test.ts",
+    "gate": "vitest run __tests__/tasks __tests__/gate.task.test.ts",
+    "gate:struct": "vitest run __tests__/families",
+    "gate:d1": "vitest run __tests__/tasks/active-low-interlock __tests__/tasks/dual-input-safety-enable __tests__/tasks/hex-dip-to-7segment __tests__/tasks/potentiometer-pwm-map __tests__/tasks/tmp36-calibrated-report __tests__/tasks/uno-led-blink",
+    "gate:d2": "vitest run __tests__/tasks/debounced-toggle __tests__/tasks/integer-overflow-accumulator __tests__/tasks/light-alarm-hysteresis __tests__/tasks/responsive-dual-scheduler __tests__/tasks/rolling-adc-average __tests__/tasks/serial-control-protocol",
+    "gate:d3": "vitest run __tests__/tasks/appliance-cycle-fsm __tests__/tasks/four-mode-indicator __tests__/tasks/reaction-timer-fsm",
     "export:inspection": "tsx scripts/export-inspection-scenarios.ts"
   },
   "devDependencies": {

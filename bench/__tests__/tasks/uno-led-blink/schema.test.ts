@@ -4,8 +4,8 @@
  * Pure Node — reads the sketch via fs + builds the circuit; no backend needed.
  */
 import { describe, it, expect } from 'vitest';
-import scenario from '../tasks/uno-led-blink/task';
-import { getTask } from '../tasks/registry';
+import scenario from '../../../tasks/uno-led-blink/task';
+import { getTask } from '../../../tasks/registry';
 
 describe('OneShotScenario: uno-led-blink', () => {
   it('populates the public/reporting metadata fields', () => {
@@ -15,7 +15,6 @@ describe('OneShotScenario: uno-led-blink', () => {
     expect(typeof scenario.domain).toBe('string');
     expect(scenario.prompt.length).toBeGreaterThan(0);
     expect(scenario.libraries).toEqual([]);
-    // referenceSolution paths are canonical; wrongs/variants are authored in Pass 4+.
     expect(scenario.referenceSolution).toEqual(['sketch.ino']);
     expect(Array.isArray(scenario.adversarialWrongs)).toBe(true);
     expect(Array.isArray(scenario.variants)).toBe(true);
@@ -26,7 +25,6 @@ describe('OneShotScenario: uno-led-blink', () => {
     expect(scenario.runMs).toBeGreaterThan(0);
     expect(scenario.contract.length).toBeGreaterThan(0);
     expect(scenario.circuit.format).toBe('velxio-project');
-    // referenceFirmware is the resolved content of referenceSolution.
     expect(scenario.referenceFirmware[0].name).toBe('sketch.ino');
     expect(scenario.referenceFirmware[0].content).toContain('loop');
   });
