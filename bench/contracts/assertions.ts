@@ -24,14 +24,31 @@ const round = (x: number, dp = 3) => Math.round(x * 10 ** dp) / 10 ** dp;
 
 // ── Pin-level primitives ────────────────────────────────────────────────────
 
+/**
+ * Optional measurement window [fromMs, toMs] — restrict the timing analysis to
+ * edges inside it. Needed when a pin's frequency CHANGES over the run (e.g. a
+ * mode-switching blinker), so whole-trace analysis would be meaningless.
+ */
+export interface TimingWindow {
+  fromMs: number;
+  toMs: number;
+}
+
+function windowedEdges(trace: Trace, pin: number, window?: TimingWindow) {
+  const edges = edgesForPin(trace, pin);
+  if (!window) return edges;
+  return edges.filter((e) => e.tMs >= window.fromMs && e.tMs <= window.toMs);
+}
+
 export function pinFrequency(
   pin: number,
-  opts: { hz: number; tolPct?: number },
+  opts: { hz: number; tolPct?: number; window?: TimingWindow },
 ): Assertion {
   const tolPct = opts.tolPct ?? DEFAULT_TOL_PCT;
   return (trace: Trace) => {
-    const t = analyzeDigitalTiming(edgesForPin(trace, pin));
-    const name = `pinFrequency(${pin})`;
+    const t = analyzeDigitalTiming(windowedEdges(trace, pin, opts.window));
+    const win = opts.window ? `[${opts.window.fromMs}–${opts.window.toMs}ms]` : '';
+    const name = `pinFrequency(${pin})${win}`;
     if (t.freqHz == null) {
       return {
         name,
@@ -52,12 +69,13 @@ export function pinFrequency(
 
 export function pinDutyCycle(
   pin: number,
-  opts: { duty: number; tolPct?: number },
+  opts: { duty: number; tolPct?: number; window?: TimingWindow },
 ): Assertion {
   const tolPct = opts.tolPct ?? DEFAULT_TOL_PCT;
   return (trace: Trace) => {
-    const t = analyzeDigitalTiming(edgesForPin(trace, pin));
-    const name = `pinDutyCycle(${pin})`;
+    const t = analyzeDigitalTiming(windowedEdges(trace, pin, opts.window));
+    const win = opts.window ? `[${opts.window.fromMs}–${opts.window.toMs}ms]` : '';
+    const name = `pinDutyCycle(${pin})${win}`;
     if (t.dutyMean == null) {
       return {
         name,

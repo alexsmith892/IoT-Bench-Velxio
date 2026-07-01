@@ -22,6 +22,14 @@ import rollingAvgSketch from "../scenarios/rolling-adc-average/sketch.ino?raw";
 import { buildProject as buildRollingAvgProject } from "../scenarios/rolling-adc-average/circuit";
 import overflowAccSketch from "../scenarios/integer-overflow-accumulator/sketch.ino?raw";
 import { buildProject as buildOverflowAccProject } from "../scenarios/integer-overflow-accumulator/circuit";
+import serialCtrlSketch from "../scenarios/serial-control-protocol/sketch.ino?raw";
+import { buildProject as buildSerialCtrlProject } from "../scenarios/serial-control-protocol/circuit";
+import fourModeSketch from "../scenarios/four-mode-indicator/sketch.ino?raw";
+import { buildProject as buildFourModeProject } from "../scenarios/four-mode-indicator/circuit";
+import reactionSketch from "../scenarios/reaction-timer-fsm/sketch.ino?raw";
+import { buildProject as buildReactionProject } from "../scenarios/reaction-timer-fsm/circuit";
+import applianceSketch from "../scenarios/appliance-cycle-fsm/sketch.ino?raw";
+import { buildProject as buildApplianceProject } from "../scenarios/appliance-cycle-fsm/circuit";
 
 // The circuit wiring is shared with the headless grading harness via
 // `bench/scenarios/<id>/circuit.ts` (single source of truth); only the
@@ -145,6 +153,62 @@ export const inspectionScenarios = [
     taskMonitor: {
       boardId: "arduino-uno",
       probes: [{ channel: "serial", label: "Stats I/O", derive: ["log"] }],
+    },
+  },
+  {
+    id: "serial-control-protocol",
+    title: "D2 · Serial Control Protocol",
+    project: buildSerialCtrlProject(serialCtrlSketch),
+    taskMonitor: {
+      boardId: "arduino-uno",
+      probes: [
+        { channel: "pinEdges", pin: 7, label: "LED (D7)", derive: ["level"] },
+        { channel: "pwm", pin: 3, label: "PWM (D3)", derive: ["value", "trace"] },
+        { channel: "serial", label: "Command I/O", derive: ["log"] },
+      ],
+    },
+  },
+  {
+    id: "four-mode-indicator",
+    title: "D3 · Four-Mode Indicator",
+    project: buildFourModeProject(fourModeSketch),
+    taskMonitor: {
+      boardId: "arduino-uno",
+      probes: [
+        { channel: "pinEdges", pin: 4, label: "Indicator LED (D4)", derive: ["level", "digitalTiming", "waveform"] },
+        { channel: "pinEdges", pin: 3, label: "Buzzer (D3)", derive: ["level", "waveform"] },
+        { channel: "pinEdges", pin: 2, label: "Mode button (D2)", derive: ["level"] },
+      ],
+    },
+  },
+  {
+    id: "reaction-timer-fsm",
+    title: "D3 · Reaction Timer FSM",
+    project: buildReactionProject(reactionSketch),
+    taskMonitor: {
+      boardId: "arduino-uno",
+      probes: [
+        { channel: "pinEdges", pin: 8, label: "Cue LED (D8)", derive: ["level", "waveform"] },
+        { channel: "pinEdges", pin: 2, label: "START (D2)", derive: ["level"] },
+        { channel: "pinEdges", pin: 3, label: "STOP (D3)", derive: ["level"] },
+        { channel: "serial", label: "Timer output", derive: ["log"] },
+      ],
+    },
+  },
+  {
+    id: "appliance-cycle-fsm",
+    title: "D3 · Appliance Cycle FSM",
+    project: buildApplianceProject(applianceSketch),
+    taskMonitor: {
+      boardId: "arduino-uno",
+      probes: [
+        { channel: "pinEdges", pin: 6, label: "FILL (D6)", derive: ["level", "waveform"] },
+        { channel: "pinEdges", pin: 7, label: "MOTOR (D7)", derive: ["level", "waveform"] },
+        { channel: "pinEdges", pin: 8, label: "DRAIN (D8)", derive: ["level", "waveform"] },
+        { channel: "pinEdges", pin: 2, label: "Door (D2)", derive: ["level"] },
+        { channel: "pinEdges", pin: 3, label: "Button (D3)", derive: ["level"] },
+        { channel: "serial", label: "STATE output", derive: ["log"] },
+      ],
     },
   },
 ];

@@ -74,6 +74,28 @@ export function serialMatches(regex: RegExp, opts: SerialMatchOpts = {}): Assert
   };
 }
 
+/**
+ * Assert the serial-TX stream does NOT contain `regex` — the negative half of a
+ * format check (e.g. "no FALSE_START was printed", "no STATE=DONE after an abort").
+ * Category `serial-format`. Use it to prove a state that should NOT be reached
+ * wasn't announced, so a wrong that over-emits is caught.
+ */
+export function serialAbsent(regex: RegExp, opts: { withinMs?: number } = {}): Assertion {
+  return (trace) => {
+    const text =
+      opts.withinMs != null ? serialTextUntil(trace, opts.withinMs) : serialText(trace);
+    const pass = !regex.test(text);
+    return {
+      name: `serialAbsent(${regex})`,
+      pass,
+      category: 'serial-format',
+      reason: pass
+        ? `serial never matched ${regex} (as required)`
+        : `serial unexpectedly matched ${regex}`,
+    };
+  };
+}
+
 // ── Pin state over a window ───────────────────────────────────────────────────
 
 export interface PinStateOpts {

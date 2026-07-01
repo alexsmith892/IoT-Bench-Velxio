@@ -10,6 +10,10 @@ import lightAlarmHysteresis from './light-alarm-hysteresis/task';
 import responsiveDualScheduler from './responsive-dual-scheduler/task';
 import rollingAdcAverage from './rolling-adc-average/task';
 import integerOverflowAccumulator from './integer-overflow-accumulator/task';
+import serialControlProtocol from './serial-control-protocol/task';
+import fourModeIndicator from './four-mode-indicator/task';
+import reactionTimerFsm from './reaction-timer-fsm/task';
+import applianceCycleFsm from './appliance-cycle-fsm/task';
 
 /** All registered one-shot scenarios, keyed by id. */
 export const tasks: Record<string, OneShotScenario> = {
@@ -24,6 +28,10 @@ export const tasks: Record<string, OneShotScenario> = {
   [responsiveDualScheduler.id]: responsiveDualScheduler,
   [rollingAdcAverage.id]: rollingAdcAverage,
   [integerOverflowAccumulator.id]: integerOverflowAccumulator,
+  [serialControlProtocol.id]: serialControlProtocol,
+  [fourModeIndicator.id]: fourModeIndicator,
+  [reactionTimerFsm.id]: reactionTimerFsm,
+  [applianceCycleFsm.id]: applianceCycleFsm,
 };
 
 export function getTask(id: string): OneShotScenario | undefined {

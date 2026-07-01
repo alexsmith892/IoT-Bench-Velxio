@@ -35,6 +35,11 @@ describe('benchmark inspection scenarios', () => {
       'responsive-dual-scheduler',
       'rolling-adc-average',
       'integer-overflow-accumulator',
+      // Pass 8 — serial + early FSM task bank
+      'serial-control-protocol',
+      'four-mode-indicator',
+      'reaction-timer-fsm',
+      'appliance-cycle-fsm',
     ]);
     expect(scenarios[0]?.taskMonitor).toMatchObject({
       boardId: 'arduino-uno',

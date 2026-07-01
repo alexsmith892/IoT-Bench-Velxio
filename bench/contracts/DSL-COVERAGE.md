@@ -10,17 +10,25 @@ missing assertion. Wave-2 device/display tasks (Tiers D/E/F) are out of scope he
 | Assertion | Category | Source channel |
 |---|---|---|
 | `ledBlinks` | frequency | pinEdges (wire-resolved) |
-| `pinFrequency` | frequency | pinEdges |
-| `pinDutyCycle` | duty | pinEdges |
+| `pinFrequency` (opt. `window`) | frequency | pinEdges |
+| `pinDutyCycle` (opt. `window`) | duty | pinEdges |
 | `pinIsHigh` / `pinState` | pin-state | pinEdges |
 | `edgeOrder` | edge-order | pinEdges |
 | `pwmDuty` | pwm-duty | pwmSamples (OCR) |
 | `serialMatches` | serial-format | serial (TX) |
+| `serialAbsent` | serial-format | serial (TX) |
 | `adcDerivedValue` | adc-value | serial (TX) |
 | `serialValue` (split) | serial-value + serial-format | serial (TX) |
+| `maxFlashBytes` / `maxRamBytes` | compile-size | compile meta |
 
 Plus the deterministic stimulus inputs: pin drive, ADC step/ramp (Pass 2), and
 serial-RX injection (Pass 3).
+
+**Pass 6 addition:** `maxFlashBytes`/`maxRamBytes` (compile-size, §7 near-budget).
+**Pass 8 additions:** an optional measurement `window` on `pinFrequency`/
+`pinDutyCycle` (per-mode/segment frequency, e.g. `four_mode_indicator`; reused by
+Pass 9's `software_pwm_fade`/`cooperative_scheduler`), and `serialAbsent` (the
+negative format check — "no FALSE_START", "no STATE=DONE after abort").
 
 ## Per-task mapping (Wave-1, Tiers A/B/C)
 
