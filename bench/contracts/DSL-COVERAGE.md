@@ -29,6 +29,12 @@ serial-RX injection (Pass 3).
 `pinDutyCycle` (per-mode/segment frequency, e.g. `four_mode_indicator`; reused by
 Pass 9's `software_pwm_fade`/`cooperative_scheduler`), and `serialAbsent` (the
 negative format check — "no FALSE_START", "no STATE=DONE after abort").
+**Pass 9 additions:** `pulseWidth`/`servoAngle` (category `pulse-width`) decode a
+periodic pulse train's HIGH width → µs/angle from `pinEdges` (`servo_slew_position`);
+`edgeCount` (category `edge-count`) bounds transitions in a window (the
+`cooperative_scheduler` "no catch-up edges while paused" freeze check); and
+`serialBytesInclude` (category `serial-format`) matches an exact binary response
+frame as a byte subsequence over the Latin-1 TX stream (`binary_framed_protocol`).
 
 ## Per-task mapping (Wave-1, Tiers A/B/C)
 
@@ -60,10 +66,9 @@ negative format check — "no FALSE_START", "no STATE=DONE after abort").
 1. **EEPROM observable** — `persistent_event_counter` (Pass 10) and the Wave-1
    integration tasks (`water_tank_controller`) need EEPROM readout + a write-count
    observable. Explicitly scheduled in Pass 10; not a Pass-3/4 miss.
-2. **Pulse-width / servo-angle assertion** — `servo_slew_position` (Pass 9) needs
-   to decode a servo pulse's HIGH time → angle. Derivable from `pinEdges`
-   (latestHighMs already exists in `digitalTiming`), but wants a dedicated
-   `pulseWidth(pin,{usHigh,tol})` / `servoAngle` builder. **Add in Pass 9.**
+2. **Pulse-width / servo-angle assertion** — ✅ **CLOSED (Pass 9).** `pulseWidth`
+   and `servoAngle` (category `pulse-width`) decode a pulse train's HIGH width →
+   µs/angle from `pinEdges`. Used by `servo_slew_position`.
 3. **Buzzer/tone frequency** — `four_mode_indicator` (Pass 8) and integration
    tasks. `tone()` drives the pin via Timer2 toggle; needs the buzzer-frequency
    observer scheduled for Wave-2 Pass 15. The non-buzzer parts grade now; gate the

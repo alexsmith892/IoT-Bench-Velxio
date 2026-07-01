@@ -30,6 +30,16 @@ import reactionSketch from "../scenarios/reaction-timer-fsm/sketch.ino?raw";
 import { buildProject as buildReactionProject } from "../scenarios/reaction-timer-fsm/circuit";
 import applianceSketch from "../scenarios/appliance-cycle-fsm/sketch.ino?raw";
 import { buildProject as buildApplianceProject } from "../scenarios/appliance-cycle-fsm/circuit";
+import quadratureSketch from "../scenarios/quadrature-position/sketch.ino?raw";
+import { buildProject as buildQuadratureProject } from "../scenarios/quadrature-position/circuit";
+import binaryFrameSketch from "../scenarios/binary-framed-protocol/sketch.ino?raw";
+import { buildProject as buildBinaryFrameProject } from "../scenarios/binary-framed-protocol/circuit";
+import servoSketch from "../scenarios/servo-slew-position/sketch.ino?raw";
+import { buildProject as buildServoProject } from "../scenarios/servo-slew-position/circuit";
+import softPwmSketch from "../scenarios/software-pwm-fade/sketch.ino?raw";
+import { buildProject as buildSoftPwmProject } from "../scenarios/software-pwm-fade/circuit";
+import coopSketch from "../scenarios/cooperative-scheduler/sketch.ino?raw";
+import { buildProject as buildCoopProject } from "../scenarios/cooperative-scheduler/circuit";
 
 // The circuit wiring is shared with the headless grading harness via
 // `bench/scenarios/<id>/circuit.ts` (single source of truth); only the
@@ -208,6 +218,73 @@ export const inspectionScenarios = [
         { channel: "pinEdges", pin: 2, label: "Door (D2)", derive: ["level"] },
         { channel: "pinEdges", pin: 3, label: "Button (D3)", derive: ["level"] },
         { channel: "serial", label: "STATE output", derive: ["log"] },
+      ],
+    },
+  },
+  {
+    id: "quadrature-position",
+    title: "D3 · Quadrature Position",
+    project: buildQuadratureProject(quadratureSketch),
+    taskMonitor: {
+      boardId: "arduino-uno",
+      probes: [
+        { channel: "pinEdges", pin: 2, label: "Channel A (D2)", derive: ["level", "waveform"] },
+        { channel: "pinEdges", pin: 3, label: "Channel B (D3)", derive: ["level", "waveform"] },
+        { channel: "serial", label: "POS/DIR output", derive: ["log"] },
+      ],
+    },
+  },
+  {
+    id: "binary-framed-protocol",
+    title: "D3 · Binary Framed Protocol",
+    project: buildBinaryFrameProject(binaryFrameSketch),
+    taskMonitor: {
+      boardId: "arduino-uno",
+      probes: [
+        { channel: "pinEdges", pin: 7, label: "LED (D7)", derive: ["level"] },
+        { channel: "pwm", pin: 3, label: "PWM (D3)", derive: ["value", "trace"] },
+        { channel: "serial", label: "Binary frames (I/O)", derive: ["log"] },
+      ],
+    },
+  },
+  {
+    id: "servo-slew-position",
+    title: "D3 · Servo Slew Position",
+    project: buildServoProject(servoSketch),
+    taskMonitor: {
+      boardId: "arduino-uno",
+      probes: [
+        { channel: "pinEdges", pin: 9, label: "Servo pulse (D9)", derive: ["level", "waveform"] },
+        { channel: "serial", label: "POS command I/O", derive: ["log"] },
+      ],
+    },
+  },
+  {
+    id: "software-pwm-fade",
+    title: "D3 · Software PWM Fade",
+    project: buildSoftPwmProject(softPwmSketch),
+    taskMonitor: {
+      boardId: "arduino-uno",
+      probes: [
+        { channel: "pinEdges", pin: 8, label: "Software PWM (D8)", derive: ["level", "digitalTiming", "waveform"] },
+        { channel: "serial", label: "DUTY/RAMP I/O", derive: ["log"] },
+      ],
+    },
+  },
+  {
+    id: "cooperative-scheduler",
+    title: "D3 · Cooperative Scheduler",
+    project: buildCoopProject(coopSketch),
+    taskMonitor: {
+      boardId: "arduino-uno",
+      probes: [
+        { channel: "pinEdges", pin: 4, label: "LED 1 Hz (D4)", derive: ["level", "digitalTiming", "waveform"] },
+        { channel: "pinEdges", pin: 5, label: "LED 2 Hz (D5)", derive: ["level", "digitalTiming", "waveform"] },
+        { channel: "pinEdges", pin: 6, label: "LED 3 Hz (D6)", derive: ["level", "digitalTiming", "waveform"] },
+        { channel: "pinEdges", pin: 7, label: "LED 5 Hz (D7)", derive: ["level", "digitalTiming", "waveform"] },
+        { channel: "pinEdges", pin: 2, label: "Button (D2)", derive: ["level"] },
+        { channel: "pinEdges", pin: 8, label: "Response LED (D8)", derive: ["level", "waveform"] },
+        { channel: "serial", label: "PAUSE/RESUME I/O", derive: ["log"] },
       ],
     },
   },

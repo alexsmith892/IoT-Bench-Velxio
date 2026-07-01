@@ -40,6 +40,12 @@ describe('benchmark inspection scenarios', () => {
       'four-mode-indicator',
       'reaction-timer-fsm',
       'appliance-cycle-fsm',
+      // Pass 9 — decode & timing-precision task bank
+      'quadrature-position',
+      'binary-framed-protocol',
+      'servo-slew-position',
+      'software-pwm-fade',
+      'cooperative-scheduler',
     ]);
     expect(scenarios[0]?.taskMonitor).toMatchObject({
       boardId: 'arduino-uno',

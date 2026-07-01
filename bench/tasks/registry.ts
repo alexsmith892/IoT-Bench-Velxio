@@ -14,6 +14,11 @@ import serialControlProtocol from './serial-control-protocol/task';
 import fourModeIndicator from './four-mode-indicator/task';
 import reactionTimerFsm from './reaction-timer-fsm/task';
 import applianceCycleFsm from './appliance-cycle-fsm/task';
+import quadraturePosition from './quadrature-position/task';
+import binaryFramedProtocol from './binary-framed-protocol/task';
+import servoSlewPosition from './servo-slew-position/task';
+import softwarePwmFade from './software-pwm-fade/task';
+import cooperativeScheduler from './cooperative-scheduler/task';
 
 /** All registered one-shot scenarios, keyed by id. */
 export const tasks: Record<string, OneShotScenario> = {
@@ -32,6 +37,11 @@ export const tasks: Record<string, OneShotScenario> = {
   [fourModeIndicator.id]: fourModeIndicator,
   [reactionTimerFsm.id]: reactionTimerFsm,
   [applianceCycleFsm.id]: applianceCycleFsm,
+  [quadraturePosition.id]: quadraturePosition,
+  [binaryFramedProtocol.id]: binaryFramedProtocol,
+  [servoSlewPosition.id]: servoSlewPosition,
+  [softwarePwmFade.id]: softwarePwmFade,
+  [cooperativeScheduler.id]: cooperativeScheduler,
 };
 
 export function getTask(id: string): OneShotScenario | undefined {

@@ -18,11 +18,16 @@ function assertTierStructure(tier: 'D1' | 'D2' | 'D3', expectedIds: string[]): v
 }
 
 describe('D3 family structure', () => {
-  it('lists three D3 tasks with per-task gate tests', () => {
+  it('lists the D3 tasks with per-task gate tests', () => {
     assertTierStructure('D3', [
       'appliance-cycle-fsm',
+      'binary-framed-protocol',
+      'cooperative-scheduler',
       'four-mode-indicator',
+      'quadrature-position',
       'reaction-timer-fsm',
+      'servo-slew-position',
+      'software-pwm-fade',
     ]);
   });
 });

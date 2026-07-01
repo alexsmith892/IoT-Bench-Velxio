@@ -29,6 +29,23 @@ export const TOLERANCES = {
    * Principled floor: benchmark-design.md §4 mandates all timing windows ≥ a few ms.
    */
   timingWindowMs: 20,
+  /**
+   * Servo/pulse HIGH-width match, microseconds (Pass 9 `pulseWidth`). Principled:
+   * the 1000–2000µs servo band spans 180°, so 40µs ≈ ±3.6° — comfortably wider
+   * than the sub-µs edge-timestamp resolution yet tight enough to fail a mis-mapped
+   * or instant-jump wrong (which miss by hundreds of µs).
+   */
+  pulseWidthUs: 40,
+  /**
+   * Servo angle match, degrees (Pass 9 `servoAngle`). Set at 6° (~33µs) — wider
+   * than the ~14µs jitter of the reference so that ALTERNATIVE valid pulse
+   * generators (Timer1 CTC / delayMicroseconds / micros-polling, each with a
+   * different constant edge offset) still pass, while a wrong mapping (off by
+   * hundreds of µs) fails. Settled-angle checks do no discrimination work here
+   * (instant-jump fails on the mid-slew window, blocking on frequency), so the
+   * wider band costs no wrong-detection. Principled (FN-protection).
+   */
+  servoAngleDeg: 6,
 } as const;
 
 export const WEIGHTS = {

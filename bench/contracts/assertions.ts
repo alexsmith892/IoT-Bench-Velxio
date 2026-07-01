@@ -94,6 +94,119 @@ export function pinDutyCycle(
   };
 }
 
+// ── Pulse-width / servo-angle (Pass 9) ────────────────────────────────────────
+
+/**
+ * Complete HIGH-pulse widths (ms) fully contained in `[fromMs, toMs]` — each
+ * rising edge paired with the next falling edge, both inside the window. Used to
+ * decode a servo/software pulse train's HIGH time (edge timestamps are sub-µs
+ * floats, so µs-level widths are faithful).
+ */
+function highPulseWidthsMs(trace: Trace, pin: number, window?: TimingWindow): number[] {
+  const edges = edgesForPin(trace, pin);
+  const widths: number[] = [];
+  for (let i = 0; i < edges.length - 1; i++) {
+    if (edges[i].value !== 1 || edges[i + 1].value !== 0) continue;
+    const rise = edges[i].tMs;
+    const fall = edges[i + 1].tMs;
+    if (window && (rise < window.fromMs || fall > window.toMs)) continue;
+    widths.push(fall - rise);
+  }
+  return widths;
+}
+
+/**
+ * Assert a periodic pulse train's mean HIGH width (in microseconds) is
+ * `expectedUs` ± `tolUs` over an optional window. Reads `pinEdges` only — the
+ * generic primitive `servoAngle` builds on. Fails closed if the window holds no
+ * complete HIGH pulse (a stuck/absent train).
+ */
+export function pulseWidth(
+  pin: number,
+  opts: { expectedUs: number; tolUs?: number; window?: TimingWindow },
+): Assertion {
+  const tolUs = opts.tolUs ?? TOLERANCES.pulseWidthUs;
+  return (trace: Trace) => {
+    const win = opts.window ? `[${opts.window.fromMs}–${opts.window.toMs}ms]` : '';
+    const name = `pulseWidth(${pin})${win}`;
+    const widthsUs = highPulseWidthsMs(trace, pin, opts.window).map((ms) => ms * 1000);
+    if (widthsUs.length === 0) {
+      return {
+        name,
+        pass: false,
+        category: 'pulse-width',
+        reason: `pin ${pin} produced no complete HIGH pulse in the window.`,
+      };
+    }
+    const actual = widthsUs.reduce((s, w) => s + w, 0) / widthsUs.length;
+    const pass = Math.abs(actual - opts.expectedUs) <= tolUs;
+    return {
+      name,
+      pass,
+      category: 'pulse-width',
+      reason: `pin ${pin} HIGH width=${round(actual, 1)}µs vs ${opts.expectedUs}µs ±${tolUs}µs (${widthsUs.length} pulse[s]) → ${pass ? 'ok' : 'out of tolerance'}`,
+    };
+  };
+}
+
+/**
+ * Assert a servo pulse train encodes `angleDeg` (0–180°) — the °-native face of
+ * `pulseWidth` for the standard 1000µs→0° / 2000µs→180° linear mapping. Tolerance
+ * defaults to `servoAngleDeg` and is converted to µs internally.
+ */
+export function servoAngle(
+  pin: number,
+  opts: { angleDeg: number; tolDeg?: number; window?: TimingWindow },
+): Assertion {
+  const tolDeg = opts.tolDeg ?? TOLERANCES.servoAngleDeg;
+  const expectedUs = 1000 + (opts.angleDeg / 180) * 1000;
+  const tolUs = (tolDeg / 180) * 1000;
+  const inner = pulseWidth(pin, { expectedUs, tolUs, window: opts.window });
+  return (trace: Trace, ctx) => {
+    const r = inner(trace, ctx);
+    const win = opts.window ? `[${opts.window.fromMs}–${opts.window.toMs}ms]` : '';
+    return {
+      ...r,
+      name: `servoAngle(${pin})${win}`,
+      reason: `${r.reason} [target ${opts.angleDeg}° ±${tolDeg}° = ${round(expectedUs, 1)}µs]`,
+    };
+  };
+}
+
+// ── Edge count over a window (Pass 9) ─────────────────────────────────────────
+
+/**
+ * Assert the number of transitions on `pin` within an optional window is bounded
+ * by `min`/`max`. Its Pass-9 use is "no catch-up edge burst" after a scheduler
+ * RESUME (a phase-restart wrong emits an abnormal cluster of edges); it also
+ * guards "stuck" (too few) pins. Category `edge-count`.
+ */
+export function edgeCount(
+  pin: number,
+  opts: { min?: number; max?: number; window?: TimingWindow },
+): Assertion {
+  return (trace: Trace) => {
+    const win = opts.window ? `[${opts.window.fromMs}–${opts.window.toMs}ms]` : '';
+    const name = `edgeCount(${pin})${win}`;
+    const count = windowedEdges(trace, pin, opts.window).length;
+    const minOk = opts.min == null || count >= opts.min;
+    const maxOk = opts.max == null || count <= opts.max;
+    const pass = minOk && maxOk;
+    const bound = [
+      opts.min != null ? `≥${opts.min}` : null,
+      opts.max != null ? `≤${opts.max}` : null,
+    ]
+      .filter(Boolean)
+      .join(' and ');
+    return {
+      name,
+      pass,
+      category: 'edge-count',
+      reason: `pin ${pin} had ${count} edge(s) vs ${bound || 'any'} → ${pass ? 'ok' : 'out of bounds'}`,
+    };
+  };
+}
+
 export function pinIsHigh(pin: number, opts: { atMs: number }): Assertion {
   return (trace: Trace) => {
     const edges = edgesForPin(trace, pin).filter((e) => e.tMs <= opts.atMs);

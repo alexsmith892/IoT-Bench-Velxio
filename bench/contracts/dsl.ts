@@ -96,6 +96,33 @@ export function serialAbsent(regex: RegExp, opts: { withinMs?: number } = {}): A
   };
 }
 
+/**
+ * Assert the serial-TX byte stream CONTAINS `bytes` as a contiguous subsequence —
+ * the exact-byte face of `serialMatches` for binary protocols
+ * (`binary_framed_protocol`), so a response frame is matched by value without
+ * hand-escaping a Latin-1 regex. Category `serial-format`.
+ */
+export function serialBytesInclude(bytes: number[]): Assertion {
+  return (trace) => {
+    const stream = trace.serial.map((s) => s.char.charCodeAt(0) & 0xff);
+    const needle = bytes.map((b) => b & 0xff);
+    const hex = needle.map((b) => b.toString(16).padStart(2, '0')).join(' ');
+    const name = `serialBytesInclude(${hex})`;
+    let pass = needle.length === 0;
+    for (let i = 0; i + needle.length <= stream.length && !pass; i++) {
+      pass = needle.every((b, j) => stream[i + j] === b);
+    }
+    return {
+      name,
+      pass,
+      category: 'serial-format',
+      reason: pass
+        ? `serial contained byte frame [${hex}]`
+        : `serial did NOT contain byte frame [${hex}] (${stream.length} TX byte[s])`,
+    };
+  };
+}
+
 // ── Pin state over a window ───────────────────────────────────────────────────
 
 export interface PinStateOpts {
