@@ -12,6 +12,16 @@ import potPwmSketch from "../scenarios/potentiometer-pwm-map/sketch.ino?raw";
 import { buildProject as buildPotPwmProject } from "../scenarios/potentiometer-pwm-map/circuit";
 import hexSegSketch from "../scenarios/hex-dip-to-7segment/sketch.ino?raw";
 import { buildProject as buildHexSegProject } from "../scenarios/hex-dip-to-7segment/circuit";
+import debouncedToggleSketch from "../scenarios/debounced-toggle/sketch.ino?raw";
+import { buildProject as buildDebouncedToggleProject } from "../scenarios/debounced-toggle/circuit";
+import lightAlarmSketch from "../scenarios/light-alarm-hysteresis/sketch.ino?raw";
+import { buildProject as buildLightAlarmProject } from "../scenarios/light-alarm-hysteresis/circuit";
+import dualSchedulerSketch from "../scenarios/responsive-dual-scheduler/sketch.ino?raw";
+import { buildProject as buildDualSchedulerProject } from "../scenarios/responsive-dual-scheduler/circuit";
+import rollingAvgSketch from "../scenarios/rolling-adc-average/sketch.ino?raw";
+import { buildProject as buildRollingAvgProject } from "../scenarios/rolling-adc-average/circuit";
+import overflowAccSketch from "../scenarios/integer-overflow-accumulator/sketch.ino?raw";
+import { buildProject as buildOverflowAccProject } from "../scenarios/integer-overflow-accumulator/circuit";
 
 // The circuit wiring is shared with the headless grading harness via
 // `bench/scenarios/<id>/circuit.ts` (single source of truth); only the
@@ -80,5 +90,61 @@ export const inspectionScenarios = [
     id: "hex-dip-to-7segment",
     title: "D1 · Hex DIP to 7-Segment",
     project: buildHexSegProject(hexSegSketch),
+  },
+  {
+    id: "debounced-toggle",
+    title: "D2 · Debounced Toggle",
+    project: buildDebouncedToggleProject(debouncedToggleSketch),
+    // Zero-config: default probes derive the button D2 and the active-low LED D7.
+  },
+  {
+    id: "light-alarm-hysteresis",
+    title: "D2 · Light Alarm Hysteresis",
+    project: buildLightAlarmProject(lightAlarmSketch),
+    taskMonitor: {
+      boardId: "arduino-uno",
+      probes: [
+        { channel: "adc", pin: 2, label: "Light sensor A2", derive: ["value", "trace"] },
+        { channel: "pinEdges", pin: 6, label: "Warning LED (D6)", derive: ["level", "digitalTiming"] },
+      ],
+    },
+  },
+  {
+    id: "responsive-dual-scheduler",
+    title: "D2 · Responsive Dual Scheduler",
+    project: buildDualSchedulerProject(dualSchedulerSketch),
+    taskMonitor: {
+      boardId: "arduino-uno",
+      probes: [
+        { channel: "pinEdges", pin: 3, label: "LED A 1 Hz (D3)", derive: ["level", "digitalTiming", "waveform"] },
+        { channel: "pinEdges", pin: 5, label: "LED B 2 Hz (D5)", derive: ["level", "digitalTiming", "waveform"] },
+        // Button (D2) and response LED (D8) are aperiodic (button-driven): show the
+        // level and a scope so the high/low tracking is visible, but NOT
+        // digitalTiming — frequency/period/duty are meaningless for a button mirror.
+        { channel: "pinEdges", pin: 2, label: "Button (D2)", derive: ["level", "waveform"] },
+        { channel: "pinEdges", pin: 8, label: "Response LED (D8)", derive: ["level", "waveform"] },
+      ],
+    },
+  },
+  {
+    id: "rolling-adc-average",
+    title: "D2 · Rolling ADC Average",
+    project: buildRollingAvgProject(rollingAvgSketch),
+    taskMonitor: {
+      boardId: "arduino-uno",
+      probes: [
+        { channel: "adc", pin: 0, label: "Signal A0", derive: ["value", "trace"] },
+        { channel: "serial", label: "AVG report", derive: ["log"] },
+      ],
+    },
+  },
+  {
+    id: "integer-overflow-accumulator",
+    title: "D2 · Integer Overflow Accumulator",
+    project: buildOverflowAccProject(overflowAccSketch),
+    taskMonitor: {
+      boardId: "arduino-uno",
+      probes: [{ channel: "serial", label: "Stats I/O", derive: ["log"] }],
+    },
   },
 ];

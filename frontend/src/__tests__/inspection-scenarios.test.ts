@@ -23,6 +23,18 @@ describe('benchmark inspection scenarios', () => {
     expect(scenarios.map((scenario) => scenario.id)).toEqual([
       'uno-led-blink',
       'uno-monitor-channels',
+      // Pass 6 — D1 task bank
+      'active-low-interlock',
+      'dual-input-safety-enable',
+      'tmp36-calibrated-report',
+      'potentiometer-pwm-map',
+      'hex-dip-to-7segment',
+      // Pass 7 — D2 timing/analog/numeric task bank
+      'debounced-toggle',
+      'light-alarm-hysteresis',
+      'responsive-dual-scheduler',
+      'rolling-adc-average',
+      'integer-overflow-accumulator',
     ]);
     expect(scenarios[0]?.taskMonitor).toMatchObject({
       boardId: 'arduino-uno',

@@ -5,6 +5,11 @@ import dualInputSafetyEnable from './dual-input-safety-enable/task';
 import tmp36CalibratedReport from './tmp36-calibrated-report/task';
 import potentiometerPwmMap from './potentiometer-pwm-map/task';
 import hexDipTo7Segment from './hex-dip-to-7segment/task';
+import debouncedToggle from './debounced-toggle/task';
+import lightAlarmHysteresis from './light-alarm-hysteresis/task';
+import responsiveDualScheduler from './responsive-dual-scheduler/task';
+import rollingAdcAverage from './rolling-adc-average/task';
+import integerOverflowAccumulator from './integer-overflow-accumulator/task';
 
 /** All registered one-shot scenarios, keyed by id. */
 export const tasks: Record<string, OneShotScenario> = {
@@ -14,6 +19,11 @@ export const tasks: Record<string, OneShotScenario> = {
   [tmp36CalibratedReport.id]: tmp36CalibratedReport,
   [potentiometerPwmMap.id]: potentiometerPwmMap,
   [hexDipTo7Segment.id]: hexDipTo7Segment,
+  [debouncedToggle.id]: debouncedToggle,
+  [lightAlarmHysteresis.id]: lightAlarmHysteresis,
+  [responsiveDualScheduler.id]: responsiveDualScheduler,
+  [rollingAdcAverage.id]: rollingAdcAverage,
+  [integerOverflowAccumulator.id]: integerOverflowAccumulator,
 };
 
 export function getTask(id: string): OneShotScenario | undefined {
