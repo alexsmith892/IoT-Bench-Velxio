@@ -36,6 +36,8 @@ export interface SerialMatchOpts {
    * Checked loosely: at least `floor(duration/everyMs) - 1` global matches.
    */
   everyMs?: number;
+  /** Restrict matching to serial bytes in `[fromMs, toMs]` (inclusive). */
+  window?: { fromMs: number; toMs: number };
 }
 
 /**
@@ -47,8 +49,15 @@ export interface SerialMatchOpts {
 export function serialMatches(regex: RegExp, opts: SerialMatchOpts = {}): Assertion {
   return (trace) => {
     const name = `serialMatches(${regex})`;
-    const text =
-      opts.withinMs != null ? serialTextUntil(trace, opts.withinMs) : serialText(trace);
+    let text: string;
+    if (opts.window != null) {
+      text = trace.serial
+        .filter((s) => s.tMs >= opts.window!.fromMs && s.tMs <= opts.window!.toMs)
+        .map((s) => s.char)
+        .join('');
+    } else {
+      text = opts.withinMs != null ? serialTextUntil(trace, opts.withinMs) : serialText(trace);
+    }
 
     if (opts.everyMs != null && opts.everyMs > 0) {
       const global = new RegExp(regex.source, regex.flags.includes('g') ? regex.flags : regex.flags + 'g');
@@ -294,6 +303,59 @@ export function adcDerivedValue(opts: AdcDerivedValueOpts): Assertion {
       pass,
       category: 'adc-value',
       reason: `decoded ${round(actual, 4)} vs ${opts.expected} ±${opts.tolerance} → ${pass ? 'ok' : 'out of tolerance'}`,
+    };
+  };
+}
+
+// ── EEPROM (Tier C, Pass 10) ──────────────────────────────────────────────────
+
+/** Assert a byte in the final EEPROM snapshot matches `expected`. */
+export function eepromByte(addr: number, expected: number): Assertion {
+  return (trace) => {
+    const name = `eepromByte(${addr},${expected})`;
+    const snap = trace.eepromSnapshot;
+    if (!snap) {
+      return { name, pass: false, category: 'eeprom', reason: 'EEPROM snapshot unavailable on trace' };
+    }
+    const actual = snap[addr] ?? 0xff;
+    const pass = actual === (expected & 0xff);
+    return {
+      name,
+      pass,
+      category: 'eeprom',
+      reason: `EEPROM[${addr}]=0x${actual.toString(16)} vs 0x${(expected & 0xff).toString(16)} → ${pass ? 'ok' : 'mismatch'}`,
+    };
+  };
+}
+
+export interface EepromWriteCountOpts {
+  /** Maximum firmware-initiated EEPROM writes allowed in the window. */
+  max: number;
+  /** Count only writes with tMs in `[fromMs, toMs]` (inclusive). */
+  window?: { fromMs: number; toMs: number };
+}
+
+/**
+ * Assert firmware-initiated EEPROM write count (stimulus seeds excluded).
+ * Grades the "do not write EEPROM when unchanged" requirement.
+ */
+export function eepromWriteCount(opts: EepromWriteCountOpts): Assertion {
+  return (trace) => {
+    const name = `eepromWriteCount(max=${opts.max})`;
+    const writes = trace.eepromWrites ?? [];
+    const filtered =
+      opts.window != null
+        ? writes.filter((w) => w.tMs >= opts.window!.fromMs && w.tMs <= opts.window!.toMs)
+        : writes;
+    const count = filtered.length;
+    const pass = count <= opts.max;
+    const win =
+      opts.window != null ? ` in [${opts.window.fromMs},${opts.window.toMs}]ms` : '';
+    return {
+      name,
+      pass,
+      category: 'eeprom-write',
+      reason: `${count} EEPROM write(s)${win} vs ≤${opts.max} → ${pass ? 'ok' : 'too many'}`,
     };
   };
 }

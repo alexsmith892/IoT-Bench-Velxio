@@ -24,6 +24,8 @@ export type AssertionCategory =
   | 'serial-value'
   | 'adc-value'
   | 'compile-size'
+  | 'eeprom'
+  | 'eeprom-write'
   | 'custom';
 
 export interface AssertionResult {

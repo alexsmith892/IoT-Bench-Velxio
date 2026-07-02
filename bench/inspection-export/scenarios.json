@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-07-01T18:32:15.297Z",
+  "exportedAt": "2026-07-02T01:16:31.612Z",
   "scenarios": [
     {
       "id": "uno-led-blink",
@@ -4191,6 +4191,531 @@
           {
             "channel": "serial",
             "label": "PAUSE/RESUME I/O",
+            "derive": [
+              "log"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "persistent-event-counter",
+      "title": "D3 · Persistent Event Counter",
+      "project": {
+        "format": "velxio-project",
+        "version": 1,
+        "exportedAt": "2026-07-01T00:00:00.000Z",
+        "name": "Persistent Event Counter",
+        "boards": [
+          {
+            "id": "arduino-uno",
+            "boardKind": "arduino-uno",
+            "x": 50,
+            "y": 50,
+            "activeFileGroupId": "group-arduino-uno",
+            "languageMode": "arduino",
+            "serialBaudRate": 115200,
+            "libraries": []
+          }
+        ],
+        "fileGroups": {
+          "group-arduino-uno": [
+            {
+              "name": "sketch.ino",
+              "content": "// OS-D3-05 reference. Persistent button-press counter in EEPROM.\n// Layout: bytes 0-1 = uint16 count (LE), byte 2 = validity marker 0xA5.\n\n#include <EEPROM.h>\n\nstatic const uint8_t MARKER_ADDR = 2;\nstatic const uint8_t VALID_MARKER = 0xA5;\nstatic const uint8_t BTN_PIN = 2;\nstatic const unsigned long DEBOUNCE_MS = 30;\n\nuint16_t count = 0;\nint btnReading = HIGH;\nint btnStable = HIGH;\nunsigned long btnChangeMs = 0;\n\nvoid persistCount() {\n  EEPROM.update(0, (uint8_t)(count & 0xFF));\n  EEPROM.update(1, (uint8_t)(count >> 8));\n  EEPROM.update(MARKER_ADDR, VALID_MARKER);\n}\n\nvoid loadCount() {\n  if (EEPROM.read(MARKER_ADDR) == VALID_MARKER) {\n    count = (uint16_t)EEPROM.read(0) | ((uint16_t)EEPROM.read(1) << 8);\n  } else {\n    count = 0;\n    persistCount();\n  }\n}\n\nvoid printCount() {\n  Serial.print(F(\"COUNT=\"));\n  Serial.println(count);\n}\n\nvoid pollButton() {\n  int r = digitalRead(BTN_PIN);\n  if (r != btnReading) {\n    btnReading = r;\n    btnChangeMs = millis();\n  }\n  if (millis() - btnChangeMs >= DEBOUNCE_MS && r != btnStable) {\n    btnStable = r;\n    if (btnStable == LOW) {\n      count++;\n      persistCount();\n      printCount();\n    }\n  }\n}\n\nvoid handleSerialLine(const char *line, uint8_t len) {\n  if (len == 5 && strncmp(line, \"CLEAR\", 5) == 0) {\n    count = 0;\n    persistCount();\n    printCount();\n    return;\n  }\n  if (len > 0) {\n    Serial.println(F(\"ERR\"));\n  }\n}\n\nchar lineBuf[16];\nuint8_t lineLen = 0;\n\nvoid pollSerial() {\n  while (Serial.available()) {\n    char c = Serial.read();\n    if (c == '\\n' || c == '\\r') {\n      if (lineLen > 0) {\n        lineBuf[lineLen] = '\\0';\n        handleSerialLine(lineBuf, lineLen);\n        lineLen = 0;\n      }\n    } else if (lineLen < sizeof(lineBuf) - 1) {\n      lineBuf[lineLen++] = c;\n    }\n  }\n}\n\nvoid setup() {\n  pinMode(BTN_PIN, INPUT_PULLUP);\n  Serial.begin(115200);\n  loadCount();\n  printCount();\n}\n\nvoid loop() {\n  pollButton();\n  pollSerial();\n}\n"
+            }
+          ]
+        },
+        "components": [
+          {
+            "id": "bench_button",
+            "metadataId": "pushbutton",
+            "x": 360,
+            "y": 210,
+            "properties": {}
+          }
+        ],
+        "wires": [
+          {
+            "id": "bench_wire_btn",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "2",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "bench_button",
+              "pinName": "1.l",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#3b82f6"
+          },
+          {
+            "id": "bench_wire_btn_gnd",
+            "start": {
+              "componentId": "bench_button",
+              "pinName": "2.l",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          }
+        ],
+        "activeBoardId": "arduino-uno"
+      },
+      "taskMonitor": {
+        "boardId": "arduino-uno",
+        "probes": [
+          {
+            "channel": "pinEdges",
+            "pin": 2,
+            "label": "Count button (D2)",
+            "derive": [
+              "level"
+            ]
+          },
+          {
+            "channel": "serial",
+            "label": "COUNT/CLEAR I/O",
+            "derive": [
+              "log"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "zone-climate-controller",
+      "title": "D4 · Zone Climate Controller",
+      "project": {
+        "format": "velxio-project",
+        "version": 1,
+        "exportedAt": "2026-07-01T00:00:00.000Z",
+        "name": "Zone Climate Controller",
+        "boards": [
+          {
+            "id": "arduino-uno",
+            "boardKind": "arduino-uno",
+            "x": 50,
+            "y": 50,
+            "activeFileGroupId": "group-arduino-uno",
+            "languageMode": "arduino",
+            "serialBaudRate": 115200,
+            "libraries": []
+          }
+        ],
+        "fileGroups": {
+          "group-arduino-uno": [
+            {
+              "name": "sketch.ino",
+              "content": "// OS-D4-05 reference. Two-zone climate controller with serial config + fault interlock.\n\nstatic const uint8_t FAULT_PIN = 2;\nstatic const uint8_t HEATER1_PIN = 6;\nstatic const uint8_t HEATER2_PIN = 7;\nstatic const uint8_t ADC_Z1 = A0;\nstatic const uint8_t ADC_Z2 = A1;\nstatic const float SP_MIN = 10.0f;\nstatic const float SP_MAX = 30.0f;\nstatic const float HYST = 0.5f;\nstatic const unsigned long SAMPLE_MS = 100;\n\nfloat sp1 = 21.0f;\nfloat sp2 = 21.0f;\nfloat t1 = 0.0f;\nfloat t2 = 0.0f;\nbool h1 = false;\nbool h2 = false;\nbool faultActive = false;\nbool sampled = false;\nunsigned long lastSample = 0;\n\nfloat readTempC(uint8_t pin) {\n  int raw = analogRead(pin);\n  float volts = raw * (5.0f / 1023.0f);\n  return (volts - 0.5f) / 0.01f;\n}\n\nvoid setHeater(uint8_t pin, bool on) {\n  digitalWrite(pin, on ? LOW : HIGH);\n}\n\nvoid applyHeaters() {\n  if (faultActive || !sampled) {\n    setHeater(HEATER1_PIN, false);\n    setHeater(HEATER2_PIN, false);\n    h1 = false;\n    h2 = false;\n    return;\n  }\n  if (t1 <= sp1 - HYST) h1 = true;\n  else if (t1 >= sp1 + HYST) h1 = false;\n  if (t2 <= sp2 - HYST) h2 = true;\n  else if (t2 >= sp2 + HYST) h2 = false;\n  setHeater(HEATER1_PIN, h1);\n  setHeater(HEATER2_PIN, h2);\n}\n\nvoid pollFault() {\n  bool f = digitalRead(FAULT_PIN) == LOW;\n  if (f != faultActive) {\n    faultActive = f;\n    applyHeaters();\n  }\n}\n\nvoid sampleZones() {\n  unsigned long now = millis();\n  if (now - lastSample < SAMPLE_MS) return;\n  lastSample = now;\n  t1 = readTempC(ADC_Z1);\n  t2 = readTempC(ADC_Z2);\n  sampled = true;\n  applyHeaters();\n}\n\nchar lineBuf[32];\nuint8_t lineLen = 0;\n\nbool parseSet(const char *line, uint8_t len) {\n  if (len < 5 || strncmp(line, \"SET \", 4) != 0) return false;\n  int zi = line[4] - '0';\n  if (zi != 1 && zi != 2) return false;\n  if (line[5] != ' ') return false;\n  float v = atof(line + 6);\n  if (v < SP_MIN || v > SP_MAX) return false;\n  if (zi == 1) sp1 = v;\n  else sp2 = v;\n  applyHeaters();\n  Serial.println(F(\"OK\"));\n  return true;\n}\n\nvoid printStatus() {\n  Serial.print(F(\"Z1 T=\"));\n  Serial.print(t1, 1);\n  Serial.print(F(\" S=\"));\n  Serial.print(sp1, 1);\n  Serial.print(F(\" H=\"));\n  Serial.print(h1 ? F(\"ON\") : F(\"OFF\"));\n  Serial.print(F(\" Z2 T=\"));\n  Serial.print(t2, 1);\n  Serial.print(F(\" S=\"));\n  Serial.print(sp2, 1);\n  Serial.print(F(\" H=\"));\n  Serial.print(h2 ? F(\"ON\") : F(\"OFF\"));\n  Serial.print(F(\" FAULT=\"));\n  Serial.println(faultActive ? F(\"ON\") : F(\"OFF\"));\n}\n\nvoid handleLine(const char *line, uint8_t len) {\n  if (len == 6 && strncmp(line, \"STATUS\", 6) == 0) {\n    printStatus();\n    return;\n  }\n  if (parseSet(line, len)) return;\n  Serial.println(F(\"ERR\"));\n}\n\nvoid pollSerial() {\n  while (Serial.available()) {\n    char c = Serial.read();\n    if (c == '\\n' || c == '\\r') {\n      if (lineLen > 0) {\n        lineBuf[lineLen] = '\\0';\n        handleLine(lineBuf, lineLen);\n        lineLen = 0;\n      }\n    } else if (lineLen < sizeof(lineBuf) - 1) {\n      lineBuf[lineLen++] = c;\n    }\n  }\n}\n\nvoid setup() {\n  pinMode(FAULT_PIN, INPUT_PULLUP);\n  pinMode(HEATER1_PIN, OUTPUT);\n  pinMode(HEATER2_PIN, OUTPUT);\n  setHeater(HEATER1_PIN, false);\n  setHeater(HEATER2_PIN, false);\n  Serial.begin(115200);\n  analogReference(DEFAULT);\n  lastSample = millis();\n}\n\nvoid loop() {\n  pollFault();\n  sampleZones();\n  pollSerial();\n}\n"
+            }
+          ]
+        },
+        "components": [
+          {
+            "id": "tmp36_z1",
+            "metadataId": "potentiometer",
+            "x": 200,
+            "y": 120,
+            "properties": {}
+          },
+          {
+            "id": "tmp36_z2",
+            "metadataId": "potentiometer",
+            "x": 200,
+            "y": 200,
+            "properties": {}
+          },
+          {
+            "id": "fault_sw",
+            "metadataId": "pushbutton",
+            "x": 360,
+            "y": 280,
+            "properties": {}
+          }
+        ],
+        "wires": [
+          {
+            "id": "w_z1_sig",
+            "start": {
+              "componentId": "tmp36_z1",
+              "pinName": "SIG",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "A0",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#f59e0b"
+          },
+          {
+            "id": "w_z1_vcc",
+            "start": {
+              "componentId": "tmp36_z1",
+              "pinName": "VCC",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "5V",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#ef4444"
+          },
+          {
+            "id": "w_z1_gnd",
+            "start": {
+              "componentId": "tmp36_z1",
+              "pinName": "GND",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.2",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          },
+          {
+            "id": "w_z2_sig",
+            "start": {
+              "componentId": "tmp36_z2",
+              "pinName": "SIG",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "A1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#f59e0b"
+          },
+          {
+            "id": "w_z2_vcc",
+            "start": {
+              "componentId": "tmp36_z2",
+              "pinName": "VCC",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "5V",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#ef4444"
+          },
+          {
+            "id": "w_z2_gnd",
+            "start": {
+              "componentId": "tmp36_z2",
+              "pinName": "GND",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.3",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          },
+          {
+            "id": "w_fault",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "2",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "fault_sw",
+              "pinName": "1.l",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#3b82f6"
+          },
+          {
+            "id": "w_fault_gnd",
+            "start": {
+              "componentId": "fault_sw",
+              "pinName": "2.l",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          }
+        ],
+        "activeBoardId": "arduino-uno"
+      },
+      "taskMonitor": {
+        "boardId": "arduino-uno",
+        "probes": [
+          {
+            "channel": "adc",
+            "pin": 0,
+            "label": "Zone 1 TMP36 (A0)",
+            "derive": [
+              "value",
+              "trace"
+            ]
+          },
+          {
+            "channel": "adc",
+            "pin": 1,
+            "label": "Zone 2 TMP36 (A1)",
+            "derive": [
+              "value",
+              "trace"
+            ]
+          },
+          {
+            "channel": "pinEdges",
+            "pin": 2,
+            "label": "Fault input (D2)",
+            "derive": [
+              "level"
+            ]
+          },
+          {
+            "channel": "pinEdges",
+            "pin": 6,
+            "label": "Heater 1 (D6)",
+            "derive": [
+              "level",
+              "waveform"
+            ]
+          },
+          {
+            "channel": "pinEdges",
+            "pin": 7,
+            "label": "Heater 2 (D7)",
+            "derive": [
+              "level",
+              "waveform"
+            ]
+          },
+          {
+            "channel": "serial",
+            "label": "SET/STATUS I/O",
+            "derive": [
+              "log"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "water-tank-controller",
+      "title": "D4 · Water Tank Controller",
+      "project": {
+        "format": "velxio-project",
+        "version": 1,
+        "exportedAt": "2026-07-01T00:00:00.000Z",
+        "name": "Water Tank Controller",
+        "boards": [
+          {
+            "id": "arduino-uno",
+            "boardKind": "arduino-uno",
+            "x": 50,
+            "y": 50,
+            "activeFileGroupId": "group-arduino-uno",
+            "languageMode": "arduino",
+            "serialBaudRate": 115200,
+            "libraries": []
+          }
+        ],
+        "fileGroups": {
+          "group-arduino-uno": [
+            {
+              "name": "sketch.ino",
+              "content": "// OS-D4-04 reference. Persistent water-tank controller.\n\n#include <EEPROM.h>\n\nstatic const uint8_t MARKER_ADDR = 4;\nstatic const uint8_t VALID_MARKER = 0xA5;\nstatic const uint8_t LEVEL_PIN = A0;\nstatic const uint8_t PUMP_PIN = 7;\nstatic const uint8_t ALARM_PIN = 6;\nstatic const uint8_t SILENCE_PIN = 2;\nstatic const unsigned long SAMPLE_MS = 50;\nstatic const unsigned long DEBOUNCE_MS = 30;\n\nuint16_t lowTh = 300;\nuint16_t highTh = 700;\nint level = 0;\nbool pumpOn = false;\nbool alarmOn = false;\nbool alarmSilenced = false;\nbool sampled = false;\nunsigned long lastSample = 0;\n\nint btnReading = HIGH;\nint btnStable = HIGH;\nunsigned long btnChangeMs = 0;\n\nvoid persistThresholds() {\n  EEPROM.update(0, (uint8_t)(lowTh & 0xFF));\n  EEPROM.update(1, (uint8_t)(lowTh >> 8));\n  EEPROM.update(2, (uint8_t)(highTh & 0xFF));\n  EEPROM.update(3, (uint8_t)(highTh >> 8));\n  EEPROM.update(MARKER_ADDR, VALID_MARKER);\n}\n\nvoid loadThresholds() {\n  if (EEPROM.read(MARKER_ADDR) == VALID_MARKER) {\n    lowTh = (uint16_t)EEPROM.read(0) | ((uint16_t)EEPROM.read(1) << 8);\n    highTh = (uint16_t)EEPROM.read(2) | ((uint16_t)EEPROM.read(3) << 8);\n  } else {\n    lowTh = 300;\n    highTh = 700;\n    persistThresholds();\n  }\n}\n\nvoid setPump(bool on) {\n  pumpOn = on;\n  digitalWrite(PUMP_PIN, on ? LOW : HIGH);\n}\n\nvoid setAlarm(bool on) {\n  alarmOn = on;\n  digitalWrite(ALARM_PIN, on ? HIGH : LOW);\n}\n\nvoid updateControl() {\n  if (!sampled) {\n    setPump(false);\n    setAlarm(false);\n    return;\n  }\n  if (level < 850) {\n    setAlarm(false);\n    alarmSilenced = false;\n  } else if (level >= 900 && !alarmSilenced) {\n    setAlarm(true);\n  } else if (alarmSilenced) {\n    setAlarm(false);\n  }\n  if (level <= (int)lowTh) setPump(true);\n  else if (level >= (int)highTh) setPump(false);\n}\n\nvoid sampleLevel() {\n  unsigned long now = millis();\n  if (now - lastSample < SAMPLE_MS) return;\n  lastSample = now;\n  level = analogRead(LEVEL_PIN);\n  sampled = true;\n  updateControl();\n}\n\nvoid pollSilence() {\n  int r = digitalRead(SILENCE_PIN);\n  if (r != btnReading) {\n    btnReading = r;\n    btnChangeMs = millis();\n  }\n  if (millis() - btnChangeMs >= DEBOUNCE_MS && r != btnStable) {\n    btnStable = r;\n    if (btnStable == LOW && alarmOn) {\n      alarmSilenced = true;\n      setAlarm(false);\n    }\n  }\n}\n\nchar lineBuf[32];\nuint8_t lineLen = 0;\n\nbool parseSet(const char *line, uint8_t len, bool isLow, uint16_t *out) {\n  const char *prefix = isLow ? \"SET LOW \" : \"SET HIGH \";\n  uint8_t plen = isLow ? 8 : 9;\n  if (len < plen || strncmp(line, prefix, plen) != 0) return false;\n  long v = atol(line + plen);\n  if (v < 0 || v > 1023) return false;\n  *out = (uint16_t)v;\n  return true;\n}\n\nvoid printStatus() {\n  Serial.print(F(\"LEVEL=\"));\n  Serial.print(level);\n  Serial.print(F(\" LOW=\"));\n  Serial.print(lowTh);\n  Serial.print(F(\" HIGH=\"));\n  Serial.print(highTh);\n  Serial.print(F(\" PUMP=\"));\n  Serial.print(pumpOn ? F(\"ON\") : F(\"OFF\"));\n  Serial.print(F(\" ALARM=\"));\n  Serial.println(alarmOn ? F(\"ON\") : F(\"OFF\"));\n}\n\nvoid handleLine(const char *line, uint8_t len) {\n  if (len == 6 && strncmp(line, \"STATUS\", 6) == 0) {\n    printStatus();\n    return;\n  }\n  uint16_t v;\n  if (parseSet(line, len, true, &v)) {\n    if (v >= highTh) {\n      Serial.println(F(\"ERR\"));\n      return;\n    }\n    lowTh = v;\n    persistThresholds();\n    updateControl();\n    Serial.println(F(\"OK\"));\n    return;\n  }\n  if (parseSet(line, len, false, &v)) {\n    if (v <= lowTh) {\n      Serial.println(F(\"ERR\"));\n      return;\n    }\n    highTh = v;\n    persistThresholds();\n    updateControl();\n    Serial.println(F(\"OK\"));\n    return;\n  }\n  if (len > 0) Serial.println(F(\"ERR\"));\n}\n\nvoid pollSerial() {\n  while (Serial.available()) {\n    char c = Serial.read();\n    if (c == '\\n' || c == '\\r') {\n      if (lineLen > 0) {\n        lineBuf[lineLen] = '\\0';\n        handleLine(lineBuf, lineLen);\n        lineLen = 0;\n      }\n    } else if (lineLen < sizeof(lineBuf) - 1) {\n      lineBuf[lineLen++] = c;\n    }\n  }\n}\n\nvoid setup() {\n  pinMode(SILENCE_PIN, INPUT_PULLUP);\n  pinMode(PUMP_PIN, OUTPUT);\n  pinMode(ALARM_PIN, OUTPUT);\n  setPump(false);\n  setAlarm(false);\n  Serial.begin(115200);\n  loadThresholds();\n  lastSample = millis();\n}\n\nvoid loop() {\n  sampleLevel();\n  pollSilence();\n  pollSerial();\n}\n"
+            }
+          ]
+        },
+        "components": [
+          {
+            "id": "level_sensor",
+            "metadataId": "potentiometer",
+            "x": 200,
+            "y": 120,
+            "properties": {}
+          },
+          {
+            "id": "silence_btn",
+            "metadataId": "pushbutton",
+            "x": 360,
+            "y": 210,
+            "properties": {}
+          }
+        ],
+        "wires": [
+          {
+            "id": "w_level_sig",
+            "start": {
+              "componentId": "level_sensor",
+              "pinName": "SIG",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "A0",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#f59e0b"
+          },
+          {
+            "id": "w_level_vcc",
+            "start": {
+              "componentId": "level_sensor",
+              "pinName": "VCC",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "5V",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#ef4444"
+          },
+          {
+            "id": "w_level_gnd",
+            "start": {
+              "componentId": "level_sensor",
+              "pinName": "GND",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.2",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          },
+          {
+            "id": "w_silence",
+            "start": {
+              "componentId": "arduino-uno",
+              "pinName": "2",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "silence_btn",
+              "pinName": "1.l",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#3b82f6"
+          },
+          {
+            "id": "w_silence_gnd",
+            "start": {
+              "componentId": "silence_btn",
+              "pinName": "2.l",
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "componentId": "arduino-uno",
+              "pinName": "GND.1",
+              "x": 0,
+              "y": 0
+            },
+            "waypoints": [],
+            "color": "#000000"
+          }
+        ],
+        "activeBoardId": "arduino-uno"
+      },
+      "taskMonitor": {
+        "boardId": "arduino-uno",
+        "probes": [
+          {
+            "channel": "adc",
+            "pin": 0,
+            "label": "Level sensor (A0)",
+            "derive": [
+              "value",
+              "trace"
+            ]
+          },
+          {
+            "channel": "pinEdges",
+            "pin": 2,
+            "label": "Silence button (D2)",
+            "derive": [
+              "level"
+            ]
+          },
+          {
+            "channel": "pinEdges",
+            "pin": 6,
+            "label": "Overflow alarm (D6)",
+            "derive": [
+              "level",
+              "waveform"
+            ]
+          },
+          {
+            "channel": "pinEdges",
+            "pin": 7,
+            "label": "Pump (D7)",
+            "derive": [
+              "level",
+              "waveform"
+            ]
+          },
+          {
+            "channel": "serial",
+            "label": "SET/STATUS I/O",
             "derive": [
               "log"
             ]

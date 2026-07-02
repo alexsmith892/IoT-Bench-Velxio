@@ -12,6 +12,8 @@ import {
   AVRTimer,
   AVRADC,
   AVRUSART,
+  AVREEPROM,
+  eepromConfig,
   portBConfig,
   portCConfig,
   portDConfig,
@@ -24,6 +26,7 @@ import {
 } from 'avr8js';
 import { parseIntelHex, bytesToProgramWords } from './intelHex';
 import { TraceRecorder, type Trace } from './trace';
+import { CountingEepromBackend } from './eepromBackend';
 import type { SimHarness } from './SimHarness';
 
 const CLOCK_HZ = 16_000_000;
@@ -59,29 +62,19 @@ const PORT_REGS: Record<PortName, { port: number; ddr: number }> = {
 };
 
 // ── Hardware-PWM units (analogWrite via OCR) ─────────────────────────────────
-// We READ the OCR/TCCR registers to derive duty rather than capture the fast PWM
-// edges: the timer compare-output OVERRIDES the PORT bit the DDR-aware edge
-// recorder reads, so an analogWrite pin would log no driven edge. Addresses are
-// the ATmega328P data-space regs (matching avr8js timer{0,1,2}Config). Each unit
-// is connected (actively driving PWM) only when its COMnx bits in TCCRnA are
-// non-zero — that is what Arduino's analogWrite() sets. Duty = OCR(low 8 bits) /
-// 255 (analogWrite's 0..255 range; TOP=255 on all three Arduino PWM timers).
 interface PwmUnit {
   pin: number;
-  /** TCCRnA address (carries the COMnx output-mode bits). */
   tccrA: number;
-  /** OCRnx address (compare value; low byte used for the 0..255 duty). */
   ocr: number;
-  /** Bit offset of this unit's COMnx field in TCCRnA (6 = unit A, 4 = unit B). */
   comShift: 6 | 4;
 }
 const PWM_UNITS: PwmUnit[] = [
-  { pin: 6, tccrA: 0x44, ocr: 0x47, comShift: 6 }, // OC0A / PD6
-  { pin: 5, tccrA: 0x44, ocr: 0x48, comShift: 4 }, // OC0B / PD5
-  { pin: 9, tccrA: 0x80, ocr: 0x88, comShift: 6 }, // OC1A / PB1
-  { pin: 10, tccrA: 0x80, ocr: 0x8a, comShift: 4 }, // OC1B / PB2
-  { pin: 11, tccrA: 0xb0, ocr: 0xb3, comShift: 6 }, // OC2A / PB3
-  { pin: 3, tccrA: 0xb0, ocr: 0xb4, comShift: 4 }, // OC2B / PD3
+  { pin: 6, tccrA: 0x44, ocr: 0x47, comShift: 6 },
+  { pin: 5, tccrA: 0x44, ocr: 0x48, comShift: 4 },
+  { pin: 9, tccrA: 0x80, ocr: 0x88, comShift: 6 },
+  { pin: 10, tccrA: 0x80, ocr: 0x8a, comShift: 4 },
+  { pin: 11, tccrA: 0xb0, ocr: 0xb3, comShift: 6 },
+  { pin: 3, tccrA: 0xb0, ocr: 0xb4, comShift: 4 },
 ];
 
 /** Sample PWM duty every 1 ms of sim-time (cycle-counted → deterministic). */
@@ -94,32 +87,48 @@ export class AVRHarness implements SimHarness {
   private ports!: Record<PortName, AVRIOPort>;
   private adc!: AVRADC;
   private usart!: AVRUSART;
+  private eepromBackend: CountingEepromBackend | null = null;
+  private program: Uint16Array | null = null;
   private portValues: Record<PortName, number> = { B: 0, C: 0, D: 0 };
-  /** Last *driven output* level recorded per Arduino pin (DDR-aware). */
   private pinLevels = new Map<number, 0 | 1>();
-  /** Last PWM duty recorded per pin, to emit a sample only on change. */
   private pwmDuties = new Map<number, number>();
   private recorder = new TraceRecorder();
+  /** Externally driven INPUT levels (stimulus), restored after simulated reset. */
+  private externalPins = new Map<number, 0 | 1>();
+  /** Last injected ADC volts per channel, restored after simulated reset. */
+  private adcVolts = new Map<number, number>();
+  /** Sim-time offset so trace timestamps stay monotonic across simulated resets. */
+  private timeOffsetMs = 0;
 
-  /** Simulated milliseconds elapsed since reset. */
   private get tMs(): number {
-    return this.cpu.cycles / (this.clockHz / 1000);
+    return this.timeOffsetMs + this.cpu.cycles / (this.clockHz / 1000);
   }
 
   load(hexText: string): void {
     const program = bytesToProgramWords(parseIntelHex(hexText));
-    this.bindCpu(program);
+    this.program = program;
+    this.timeOffsetMs = 0;
+    this.bindCpu(program, { freshHarness: true });
   }
 
-  /** Load a pre-assembled instruction-word image (used by unit tests). */
   loadProgram(words: Uint16Array): void {
     const program = new Uint16Array(0x8000 / 2);
     program.set(words);
-    this.bindCpu(program);
+    this.program = program;
+    this.timeOffsetMs = 0;
+    this.bindCpu(program, { freshHarness: true });
   }
 
-  private bindCpu(program: Uint16Array): void {
-    this.recorder = new TraceRecorder();
+  private bindCpu(program: Uint16Array, opts: { freshHarness: boolean }): void {
+    if (opts.freshHarness) {
+      this.recorder = new TraceRecorder();
+      this.eepromBackend = new CountingEepromBackend((addr, value) => {
+        this.recorder.recordEepromWrite(this.tMs, addr, value);
+      });
+      this.externalPins = new Map();
+      this.adcVolts = new Map();
+    }
+
     this.portValues = { B: 0, C: 0, D: 0 };
     this.pinLevels = new Map();
     this.pwmDuties = new Map();
@@ -131,16 +140,17 @@ export class AVRHarness implements SimHarness {
       D: new AVRIOPort(this.cpu, portDConfig),
     };
     this.adc = new AVRADC(this.cpu, adcConfig);
+    for (const [ch, v] of this.adcVolts) this.adc.channelValues[ch] = v;
 
     this.usart = new AVRUSART(this.cpu, usart0Config, this.clockHz);
     this.usart.onByteTransmit = (v: number) =>
       this.recorder.recordSerial(this.tMs, String.fromCharCode(v));
 
-    // Timers self-register clock callbacks on the CPU in their constructors;
-    // we don't read them back, but they must exist to advance PWM/millis.
     new AVRTimer(this.cpu, timer0Config);
     new AVRTimer(this.cpu, timer1Config);
     new AVRTimer(this.cpu, timer2Config);
+
+    this.attachEeprom();
 
     for (const name of ['B', 'C', 'D'] as PortName[]) {
       this.ports[name].addListener((value: number) => {
@@ -151,12 +161,7 @@ export class AVRHarness implements SimHarness {
           if (!(changed & (1 << bit))) continue;
           const pin = portBitToArduinoPin(name, bit);
           if (pin == null) continue;
-          // Record the *driven* level, not the raw PORT bit: a PORT write on an
-          // input pin toggles the pullup, not an output — it must not look like
-          // a driven edge. Only emit an edge when the driven level changed.
           const level = this.drivenLevel(name, bit);
-          // Pins reset to input/low → implicit baseline 0; a missing prior
-          // level must not look like a transition.
           if ((this.pinLevels.get(pin) ?? 0) !== level) {
             this.pinLevels.set(pin, level);
             this.recorder.recordPinEdge(this.tMs, pin, level);
@@ -164,13 +169,35 @@ export class AVRHarness implements SimHarness {
         }
       });
     }
+
+    for (const [pin, level] of this.externalPins) this.setPin(pin, level);
+  }
+
+  private attachEeprom(): void {
+    if (!this.eepromBackend) return;
+    // The peripheral registers its read/write hooks with the CPU on construction
+    // (and is retained by it for the CPU's lifetime); no field reference is needed.
+    new AVREEPROM(this.cpu, this.eepromBackend, eepromConfig);
   }
 
   /**
-   * The level a pin is actively *driving*: HIGH only when configured as output
-   * (DDR bit set) AND the PORT bit is set. INPUT / INPUT_PULLUP pins drive
-   * nothing → 0. Reads live DDR + PORT from the CPU data space.
+   * Simulated MCU reset — reboot CPU, preserve EEPROM + trace + monotonic time.
+   * External pin/ADC stimulus state is re-applied after reboot.
    */
+  simulateReset(): void {
+    if (!this.program) return;
+    const resetAt = this.tMs;
+    this.recorder.recordSimReset(resetAt);
+    this.timeOffsetMs = resetAt;
+    this.bindCpu(this.program, { freshHarness: false });
+  }
+
+  /** Stimulus pre-seed — not counted as a firmware EEPROM write. */
+  seedEeprom(bytes: Array<{ addr: number; value: number }>): void {
+    if (!this.eepromBackend) return;
+    for (const { addr, value } of bytes) this.eepromBackend.seedByte(addr, value);
+  }
+
   private drivenLevel(name: PortName, bit: number): 0 | 1 {
     const reg = PORT_REGS[name];
     const isOutput = ((this.cpu.data[reg.ddr] ?? 0) >> bit) & 1;
@@ -179,10 +206,7 @@ export class AVRHarness implements SimHarness {
   }
 
   runUntilMs(ms: number): void {
-    const targetCycle = Math.round(ms * (this.clockHz / 1000));
-    // Run in 1 ms cycle-counted chunks so PWM duty is sampled at a deterministic
-    // cadence (no wall-clock). Instruction order is unchanged, so traces stay
-    // byte-identical across runs.
+    const targetCycle = Math.round((ms - this.timeOffsetMs) * (this.clockHz / 1000));
     while (this.cpu.cycles < targetCycle) {
       const chunkEnd = Math.min(targetCycle, this.cpu.cycles + PWM_SAMPLE_CYCLES);
       while (this.cpu.cycles < chunkEnd) {
@@ -193,12 +217,6 @@ export class AVRHarness implements SimHarness {
     }
   }
 
-  /**
-   * Read each PWM unit's OCR/COM state and record a duty sample when it changes.
-   * Duty is only meaningful while the compare output is connected (COMnx ≠ 0),
-   * which is exactly what analogWrite() sets; a disconnected unit is a plain GPIO
-   * pin captured by the edge recorder instead.
-   */
   private samplePwm(): void {
     for (const u of PWM_UNITS) {
       const tccrA = this.cpu.data[u.tccrA] ?? 0;
@@ -213,38 +231,26 @@ export class AVRHarness implements SimHarness {
     }
   }
 
-  /** Driven output level of a pin (0/1) — DDR-aware; INPUT_PULLUP reads 0. */
   getPin(pin: number): 0 | 1 {
     const m = PIN_MAP[pin];
     if (!m) return 0;
     return this.drivenLevel(m.portName, m.bit);
   }
 
-  /**
-   * Drive the external value an INPUT pin reads (avr8js `AVRIOPort.setPin`).
-   * `level` is the logic level the firmware's `digitalRead`/PIN register sees —
-   * for a button to GND with `INPUT_PULLUP`, drive 0 = pressed, 1 = released.
-   * No effect (and not meaningful) on a pin the firmware has set to OUTPUT.
-   */
   setPin(pin: number, level: 0 | 1): void {
     const m = PIN_MAP[pin];
     if (!m) return;
+    this.externalPins.set(pin, level);
     this.ports[m.portName].setPin(m.bit, level === 1);
   }
 
-  /** Inject an ADC channel voltage (clamped 0–5 V) and echo it into the trace. */
   setAnalogVoltage(channel: number, volts: number): void {
     const clamped = Math.max(0, Math.min(5, volts));
+    this.adcVolts.set(channel, clamped);
     this.adc.channelValues[channel] = clamped;
     this.recorder.recordAdcInput(this.tMs, channel, clamped);
   }
 
-  /**
-   * Deliver one RX byte to USART0 (what the firmware's `Serial.read()` sees) and
-   * echo it into the trace. avr8js paces the byte through its RX machinery; the
-   * caller (the stimulus scheduler) spaces bytes by baud so each completes before
-   * the next. `byte` is 0–255.
-   */
   injectSerialByte(byte: number): void {
     this.usart.writeByte(byte & 0xff);
     this.recorder.recordSerialInput(this.tMs, String.fromCharCode(byte & 0xff));
@@ -253,6 +259,7 @@ export class AVRHarness implements SimHarness {
   trace(): Trace {
     const finalLevels: Record<string, 0 | 1> = {};
     for (const pin of Object.keys(PIN_MAP)) finalLevels[`pin${pin}`] = this.getPin(Number(pin));
-    return this.recorder.finish(this.tMs, { finalLevels });
+    const snapshot = this.eepromBackend?.snapshot();
+    return this.recorder.finish(this.tMs, { finalLevels }, snapshot);
   }
 }

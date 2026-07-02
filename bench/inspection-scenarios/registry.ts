@@ -40,6 +40,12 @@ import softPwmSketch from "../scenarios/software-pwm-fade/sketch.ino?raw";
 import { buildProject as buildSoftPwmProject } from "../scenarios/software-pwm-fade/circuit";
 import coopSketch from "../scenarios/cooperative-scheduler/sketch.ino?raw";
 import { buildProject as buildCoopProject } from "../scenarios/cooperative-scheduler/circuit";
+import pecSketch from "../scenarios/persistent-event-counter/sketch.ino?raw";
+import { buildProject as buildPecProject } from "../scenarios/persistent-event-counter/circuit";
+import zccSketch from "../scenarios/zone-climate-controller/sketch.ino?raw";
+import { buildProject as buildZccProject } from "../scenarios/zone-climate-controller/circuit";
+import wtcSketch from "../scenarios/water-tank-controller/sketch.ino?raw";
+import { buildProject as buildWtcProject } from "../scenarios/water-tank-controller/circuit";
 
 // The circuit wiring is shared with the headless grading harness via
 // `bench/scenarios/<id>/circuit.ts` (single source of truth); only the
@@ -285,6 +291,49 @@ export const inspectionScenarios = [
         { channel: "pinEdges", pin: 2, label: "Button (D2)", derive: ["level"] },
         { channel: "pinEdges", pin: 8, label: "Response LED (D8)", derive: ["level", "waveform"] },
         { channel: "serial", label: "PAUSE/RESUME I/O", derive: ["log"] },
+      ],
+    },
+  },
+  {
+    id: "persistent-event-counter",
+    title: "D3 · Persistent Event Counter",
+    project: buildPecProject(pecSketch),
+    taskMonitor: {
+      boardId: "arduino-uno",
+      probes: [
+        { channel: "pinEdges", pin: 2, label: "Count button (D2)", derive: ["level"] },
+        { channel: "serial", label: "COUNT/CLEAR I/O", derive: ["log"] },
+      ],
+    },
+  },
+  {
+    id: "zone-climate-controller",
+    title: "D4 · Zone Climate Controller",
+    project: buildZccProject(zccSketch),
+    taskMonitor: {
+      boardId: "arduino-uno",
+      probes: [
+        { channel: "adc", pin: 0, label: "Zone 1 TMP36 (A0)", derive: ["value", "trace"] },
+        { channel: "adc", pin: 1, label: "Zone 2 TMP36 (A1)", derive: ["value", "trace"] },
+        { channel: "pinEdges", pin: 2, label: "Fault input (D2)", derive: ["level"] },
+        { channel: "pinEdges", pin: 6, label: "Heater 1 (D6)", derive: ["level", "waveform"] },
+        { channel: "pinEdges", pin: 7, label: "Heater 2 (D7)", derive: ["level", "waveform"] },
+        { channel: "serial", label: "SET/STATUS I/O", derive: ["log"] },
+      ],
+    },
+  },
+  {
+    id: "water-tank-controller",
+    title: "D4 · Water Tank Controller",
+    project: buildWtcProject(wtcSketch),
+    taskMonitor: {
+      boardId: "arduino-uno",
+      probes: [
+        { channel: "adc", pin: 0, label: "Level sensor (A0)", derive: ["value", "trace"] },
+        { channel: "pinEdges", pin: 2, label: "Silence button (D2)", derive: ["level"] },
+        { channel: "pinEdges", pin: 6, label: "Overflow alarm (D6)", derive: ["level", "waveform"] },
+        { channel: "pinEdges", pin: 7, label: "Pump (D7)", derive: ["level", "waveform"] },
+        { channel: "serial", label: "SET/STATUS I/O", derive: ["log"] },
       ],
     },
   },

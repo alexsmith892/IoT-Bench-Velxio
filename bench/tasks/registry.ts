@@ -19,6 +19,9 @@ import binaryFramedProtocol from './binary-framed-protocol/task';
 import servoSlewPosition from './servo-slew-position/task';
 import softwarePwmFade from './software-pwm-fade/task';
 import cooperativeScheduler from './cooperative-scheduler/task';
+import persistentEventCounter from './persistent-event-counter/task';
+import zoneClimateController from './zone-climate-controller/task';
+import waterTankController from './water-tank-controller/task';
 
 /** All registered one-shot scenarios, keyed by id. */
 export const tasks: Record<string, OneShotScenario> = {
@@ -42,6 +45,9 @@ export const tasks: Record<string, OneShotScenario> = {
   [servoSlewPosition.id]: servoSlewPosition,
   [softwarePwmFade.id]: softwarePwmFade,
   [cooperativeScheduler.id]: cooperativeScheduler,
+  [persistentEventCounter.id]: persistentEventCounter,
+  [zoneClimateController.id]: zoneClimateController,
+  [waterTankController.id]: waterTankController,
 };
 
 export function getTask(id: string): OneShotScenario | undefined {

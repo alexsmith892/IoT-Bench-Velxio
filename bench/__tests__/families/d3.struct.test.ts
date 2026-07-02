@@ -9,7 +9,7 @@ function gateTestPath(taskId: string): string {
   return fileURLToPath(new URL(`${taskId}/gate.test.ts`, TASKS_DIR));
 }
 
-function assertTierStructure(tier: 'D1' | 'D2' | 'D3', expectedIds: string[]): void {
+function assertTierStructure(tier: 'D1' | 'D2' | 'D3' | 'D4', expectedIds: string[]): void {
   const ids = taskIdsByDifficulty(tier);
   expect(ids).toEqual([...expectedIds].sort());
   for (const id of ids) {
@@ -24,6 +24,7 @@ describe('D3 family structure', () => {
       'binary-framed-protocol',
       'cooperative-scheduler',
       'four-mode-indicator',
+      'persistent-event-counter',
       'quadrature-position',
       'reaction-timer-fsm',
       'servo-slew-position',
@@ -33,7 +34,7 @@ describe('D3 family structure', () => {
 });
 
 describe('D4 family structure', () => {
-  it('has no registered tasks yet (forward-compatible stub)', () => {
-    expect(taskIdsByDifficulty('D4')).toEqual([]);
+  it('lists the D4 tasks with per-task gate tests', () => {
+    assertTierStructure('D4', ['water-tank-controller', 'zone-climate-controller']);
   });
 });

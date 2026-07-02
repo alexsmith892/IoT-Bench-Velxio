@@ -87,6 +87,17 @@ export function traceDump(trace: Trace): string {
     lines.push(`  serial-rx: "${escapeSerial(clipped)}" [${rx.length} byte${rx.length === 1 ? '' : 's'}]`);
   }
 
+  if (trace.eepromWrites && trace.eepromWrites.length > 0) {
+    lines.push(`  eeprom: ${trace.eepromWrites.length} firmware write(s)`);
+  } else if (trace.eepromSnapshot) {
+    lines.push(`  eeprom: snapshot ${trace.eepromSnapshot.length}B (no firmware writes)`);
+  }
+
+  if (trace.simResets && trace.simResets.length > 0) {
+    const times = trace.simResets.map((r) => `${Math.round(r.tMs)}ms`).join(', ');
+    lines.push(`  resets: ${times}`);
+  }
+
   // Any remaining finalState keys (halt already shown above).
   const finalKeys = Object.keys(trace.finalState ?? {}).filter((k) => k !== 'halt');
   if (finalKeys.length > 0) {

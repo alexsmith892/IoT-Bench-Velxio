@@ -46,6 +46,10 @@ describe('benchmark inspection scenarios', () => {
       'servo-slew-position',
       'software-pwm-fade',
       'cooperative-scheduler',
+      // Pass 10 — persistence + Wave-1 integration
+      'persistent-event-counter',
+      'zone-climate-controller',
+      'water-tank-controller',
     ]);
     expect(scenarios[0]?.taskMonitor).toMatchObject({
       boardId: 'arduino-uno',

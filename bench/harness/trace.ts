@@ -53,6 +53,19 @@ export interface SerialInput {
   char: string;
 }
 
+/** One firmware-initiated EEPROM cell write (erase+program), observed by the harness. */
+export interface EepromWrite {
+  tMs: number;
+  addr: number;
+  /** Data byte written (0xff after erase-only). */
+  value: number;
+}
+
+/** Simulated MCU reset — CPU reboot with EEPROM preserved (Tier C). */
+export interface SimReset {
+  tMs: number;
+}
+
 /**
  * Compile-time program size — the cross-cutting memory observable
  * (benchmark-design.md §7). Attached to the Trace by the runner *after*
@@ -77,6 +90,12 @@ export interface Trace {
   pwmSamples: PwmSample[];
   /** Echoed serial-RX stimulus — every byte injected, in application order. */
   serialInputs: SerialInput[];
+  /** Final EEPROM image after the run (ATmega328P: 1024 bytes). */
+  eepromSnapshot?: Uint8Array;
+  /** Firmware-initiated EEPROM writes, chronological (stimulus seeds are excluded). */
+  eepromWrites?: EepromWrite[];
+  /** Simulated MCU reset times — monotonic sim-time, trace channels are continuous. */
+  simResets?: SimReset[];
   /** Total simulated milliseconds the trace covers. */
   durationMs: number;
   /** Free-form end-of-run snapshot (final pin levels, halt reason, …). */
@@ -100,6 +119,8 @@ export class TraceRecorder {
   readonly adcInputs: AdcInput[] = [];
   readonly pwmSamples: PwmSample[] = [];
   readonly serialInputs: SerialInput[] = [];
+  readonly eepromWrites: EepromWrite[] = [];
+  readonly simResets: SimReset[] = [];
 
   recordPinEdge(tMs: number, pin: number, value: 0 | 1): void {
     this.pinEdges.push({ tMs, pin, value });
@@ -121,8 +142,20 @@ export class TraceRecorder {
     this.serialInputs.push({ tMs, char });
   }
 
-  finish(durationMs: number, finalState: Record<string, unknown> = {}): Trace {
-    return {
+  recordEepromWrite(tMs: number, addr: number, value: number): void {
+    this.eepromWrites.push({ tMs, addr, value });
+  }
+
+  recordSimReset(tMs: number): void {
+    this.simResets.push({ tMs });
+  }
+
+  finish(
+    durationMs: number,
+    finalState: Record<string, unknown> = {},
+    eepromSnapshot?: Uint8Array,
+  ): Trace {
+    const trace: Trace = {
       pinEdges: this.pinEdges,
       serial: this.serial,
       adcInputs: this.adcInputs,
@@ -131,6 +164,10 @@ export class TraceRecorder {
       durationMs,
       finalState,
     };
+    if (eepromSnapshot) trace.eepromSnapshot = eepromSnapshot;
+    if (this.eepromWrites.length > 0) trace.eepromWrites = this.eepromWrites;
+    if (this.simResets.length > 0) trace.simResets = this.simResets;
+    return trace;
   }
 }
 

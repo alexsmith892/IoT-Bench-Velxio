@@ -100,6 +100,8 @@ function traceHash(t: Trace): string {
     pwmSamples: t.pwmSamples,
     serialInputs: t.serialInputs,
     adcInputs: t.adcInputs,
+    eepromWrites: t.eepromWrites,
+    simResets: t.simResets,
   });
 }
 

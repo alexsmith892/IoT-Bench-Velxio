@@ -32,6 +32,10 @@ export interface StimulusTarget {
   setAnalogVoltage(channel: number, volts: number): void;
   /** Deliver one RX byte to the firmware's serial input (0–255). Optional. */
   injectSerialByte?(byte: number): void;
+  /** Pre-seed EEPROM cells (stimulus only; not counted as firmware writes). Optional. */
+  seedEeprom?(bytes: Array<{ addr: number; value: number }>): void;
+  /** Simulated MCU reset — CPU reboot, EEPROM preserved. Optional. */
+  simulateReset?(): void;
 }
 
 /** Default serial baud assumed when a `serial` event omits one. */
@@ -69,7 +73,17 @@ export type StimulusEvent =
    * injection, spaced by the byte-time at `baud` (default 9600), so each byte's
    * RX completes before the next — the same expansion pattern as `adcRamp`.
    */
-  | { kind: 'serial'; tMs: number; data: string; baud?: number };
+  | { kind: 'serial'; tMs: number; data: string; baud?: number }
+  /**
+   * Pre-seed EEPROM bytes at `tMs` (benchmark stimulus — not a firmware write).
+   * Applied before the CPU runs past that time.
+   */
+  | { kind: 'eepromSeed'; tMs: number; bytes: Array<{ addr: number; value: number }> }
+  /**
+   * Simulated MCU reset at `tMs` — CPU reboots, EEPROM persists, trace continues
+   * with monotonic timestamps (Tier C, Pass 10).
+   */
+  | { kind: 'reset'; tMs: number };
 
 const DEFAULT_RAMP_STEP_MS = 10;
 
@@ -105,6 +119,11 @@ export function resolveStimulus(events: readonly StimulusEvent[]): ResolvedStim[
           apply: (t) => t.injectSerialByte?.(byte),
         });
       }
+    } else if (ev.kind === 'eepromSeed') {
+      const bytes = ev.bytes;
+      out.push({ tMs: ev.tMs, seq: seq++, apply: (t) => t.seedEeprom?.(bytes) });
+    } else if (ev.kind === 'reset') {
+      out.push({ tMs: ev.tMs, seq: seq++, apply: (t) => t.simulateReset?.() });
     } else {
       const step = ev.stepMs && ev.stepMs > 0 ? ev.stepMs : DEFAULT_RAMP_STEP_MS;
       const steps = Math.max(1, Math.ceil(ev.durationMs / step));
